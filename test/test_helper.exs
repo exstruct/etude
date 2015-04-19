@@ -90,5 +90,5 @@ end
 
 ExUnit.start()
 if Mix.env == :bench do
-  Benchfella.start
+  Benchfella.start(mem_stats: :include_sys)
 end

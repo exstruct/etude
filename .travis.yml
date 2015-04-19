@@ -5,5 +5,5 @@ before_install:
  - cp config/config.exs.ci config/config.exs
 env:
   - TEST_SUITE="mix coveralls.travis"
-  - TEST_SUITE="MIX_ENV=bench mix bench test/*_test.exs"
+  - TEST_SUITE="mix bench test/*_test.exs"
 script: mix compile && $TEST_SUITE

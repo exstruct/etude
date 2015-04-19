@@ -6,11 +6,20 @@ defmodule Expr.Mixfile do
      version: "1.0.0",
      elixir: "~> 1.0",
      deps: deps,
-     test_coverage: [tool: ExCoveralls]]
+     test_coverage: [tool: ExCoveralls],
+     aliases: aliases]
   end
 
   def application do
     [applications: [:logger]]
+  end
+
+  defp aliases do
+    [bench: [&set_bench_env/1, "bench"]]
+  end
+
+  defp set_bench_env(_) do
+    Mix.env(:bench)
   end
 
   defp deps do
