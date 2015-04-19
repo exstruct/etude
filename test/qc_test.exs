@@ -104,18 +104,20 @@ defmodule ExprTest.QC do
     expr_expression
   end
 
-  @tag timeout: :infinity
-  property :literal do
-    for_all ast in expr_render do
-      main = :render
-      mod = create_module(ast, main)
-      ref = :erlang.make_ref
-      state = :STATE
-      {time, {out1, state1}} = :timer.tc(mod, main, [state, &resolve/7, ref])
-      # TODO report timings and metrics
-      {out2, state2} = apply(mod, main, [state, &resolve/7, ref])
-      state1 == state and state2 == state and
-        out1 == out2
+  if Mix.env == :test do
+    @tag timeout: :infinity
+    property :expr do
+      for_all ast in expr_render do
+        main = :render
+        mod = create_module(ast, main)
+        ref = :erlang.make_ref
+        state = :STATE
+        {time, {out1, state1}} = :timer.tc(mod, main, [state, &resolve/7, ref])
+        # TODO report timings and metrics
+        {out2, state2} = apply(mod, main, [state, &resolve/7, ref])
+        state1 == state and state2 == state and
+          out1 == out2
+      end
     end
   end
 
