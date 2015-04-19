@@ -43,7 +43,7 @@ defmodule Expr.Node.Partial do
           ## create a new scope
           unquote(child_scope(:args, __MODULE__))
           Logger.debug(fn ->
-            unquote("#{name} partial ") <> to_string(mod) <> unquote(".#{fun}(") <>
+            unquote("#{name} partial ") <> to_string(unquote(mod)) <> unquote(".#{fun}(") <>
               (Enum.map(args, &inspect/1) |> Enum.join(", ")) <> ")"
           end)
           case unquote(mod).unquote(fun)(unquote_splicing(op_args), args) do
