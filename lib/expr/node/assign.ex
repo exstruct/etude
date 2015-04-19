@@ -1,6 +1,6 @@
 defmodule Expr.Node.Assign do
   defstruct name: nil,
-            child: nil,
+            expression: nil,
             line: 1 
 
   import Expr.Vars
@@ -20,8 +20,8 @@ defmodule Expr.Node.Assign do
       quote do
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
-            unquote(Expr.Node.assign(node.child, opts))
-            {unquote(Expr.Node.var(node.child, opts)), unquote(state)}
+            unquote(Expr.Node.assign(node.expression, opts))
+            {unquote(Expr.Node.var(node.expression, opts)), unquote(state)}
           end
         end
       end

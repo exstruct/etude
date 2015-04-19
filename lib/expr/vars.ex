@@ -1,17 +1,15 @@
 defmodule Expr.Vars do
-  import Expr.Utils
-
   def state(context \\ nil) do
-    atom_to_var(:_state, context)
+    Macro.var(:_state, context)
   end
   def resolve(context \\ nil) do
-    atom_to_var(:_resolve, context)
+    Macro.var(:_resolve, context)
   end
   def req(context \\ nil) do
-    atom_to_var(:_req, context)
+    Macro.var(:_req, context)
   end
   def scope(context \\ nil) do
-    atom_to_var(:_scope, context)
+    Macro.var(:_scope, context)
   end
 
   def op_args(context \\ nil) do

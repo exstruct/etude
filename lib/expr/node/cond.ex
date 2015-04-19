@@ -1,5 +1,5 @@
 defmodule Expr.Node.Cond do
-  defstruct child: nil,
+  defstruct expression: nil,
             arms: [],
             line: 1
 
@@ -30,15 +30,15 @@ defmodule Expr.Node.Cond do
     def compile(node, opts) do
       node = %{:arms => arms = [arm1, arm2]} = Expr.Node.Cond.normalize(node)
       name = Expr.Node.name(node, opts)
-      child = node.child
+      expression = node.expression
       quote line: node.line do
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             ## condition
-            unquote(Expr.Node.assign(child, opts))
+            unquote(Expr.Node.assign(expression, opts))
 
             # look at the condition value
-            case unquote(Expr.Node.var(child, opts)) do
+            case unquote(Expr.Node.var(expression, opts)) do
               # falsy
               {unquote(Utils.ready), val} when val in [false, nil, :undefined] ->
                 unquote(Expr.Node.assign(arm2, opts))
@@ -53,7 +53,7 @@ defmodule Expr.Node.Cond do
             end
           end
         end
-        unquote_splicing(Children.compile([child|arms], opts))
+        unquote_splicing(Children.compile([expression|arms], opts))
       end
     end
   end

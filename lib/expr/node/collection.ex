@@ -6,7 +6,7 @@ defmodule Expr.Node.Collection do
     def construct(node, vars)  
   end
 
-  def compile(node, opts \\ []) do
+  def compile(node, opts) do
     name = Expr.Node.name(node, opts)
     exec = "#{name}_exec" |> String.to_atom
 

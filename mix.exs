@@ -5,7 +5,8 @@ defmodule Expr.Mixfile do
     [app: :expr,
      version: "1.0.0",
      elixir: "~> 1.0",
-     deps: deps]
+     deps: deps,
+     test_coverage: [tool: ExCoveralls]]
   end
 
   def application do
@@ -13,6 +14,6 @@ defmodule Expr.Mixfile do
   end
 
   defp deps do
-    []
+    [{:excoveralls, "~> 0.3", only: [:dev, :test]}]
   end
 end

@@ -1,5 +1,6 @@
 defmodule Expr.Children do
   alias Expr.Utils
+  import Expr.Vars
 
   def compile(children, opts) when is_tuple(children) do
     compile(Tuple.to_list(children), opts)
@@ -27,13 +28,12 @@ defmodule Expr.Children do
   def root(children, opts) do
     case List.last(children) do
       nil ->
-        Macro.escape({{Utils.ready, nil}, Utils.atom_to_var(:state, nil)})
+        Macro.escape({{Utils.ready, nil}, state})
       child ->
         Expr.Node.call(child, opts)
     end
   end
 
-  def call(children, opts \\ nil)
   def call(children, opts) when is_tuple(children) do
     call(Tuple.to_list(children), opts)
   end
@@ -43,7 +43,6 @@ defmodule Expr.Children do
     end)
   end
 
-  def vars(children, opts \\ nil)
   def vars(children, opts) when is_tuple(children) do
     vars(Tuple.to_list(children), opts)
   end
@@ -53,7 +52,6 @@ defmodule Expr.Children do
     end)
   end
 
-  def args(children, opts \\ nil)
   def args(children, opts) when is_tuple(children) do
     args(Tuple.to_list(children), opts)
   end
@@ -65,11 +63,10 @@ defmodule Expr.Children do
     end)
   end
 
-  def wildcard(children, opts \\ nil)
   def wildcard(children, opts) when is_tuple(children) do
     wildcard(Tuple.to_list(children), opts)
   end
-  def wildcard(children, opts) do
-    Enum.map(children, fn(_) -> Utils.atom_to_var(:_, nil) end)
+  def wildcard(children, _opts) do
+    Enum.map(children, fn(_) -> Macro.var(:_, nil) end)
   end
 end

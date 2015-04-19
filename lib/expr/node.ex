@@ -53,6 +53,6 @@ defimpl Expr.Node, for: Any do
   end
 
   def var(node, opts) do
-    Expr.Utils.atom_to_var(Expr.Node.name(node, opts))
+    Macro.var(Expr.Node.name(node, opts), nil)
   end
 end

@@ -74,7 +74,7 @@ defmodule Expr.Node.Comprehension do
           ## something didn't finish but we're going to play the rest out
           (unquote(item), {unquote(i), nil, unquote(state)}) ->
             unquote(child_scope(:item))
-            unquote_splicing(assign_vars(node, opts))
+            unquote(assign_vars(node, opts))
             unquote(Expr.Node.assign(expression, opts))
             {unquote(i) + 1, nil, unquote(state)}
           (unquote(item), {unquote(i), acc, unquote(state)}) ->
@@ -82,7 +82,7 @@ defmodule Expr.Node.Comprehension do
             unquote(child_scope(:item))
 
             ## assign iterator variables to the scope
-            unquote_splicing(assign_vars(node, opts))
+            unquote(assign_vars(node, opts))
 
             ## dependency
             unquote(Expr.Node.assign(expression, opts))

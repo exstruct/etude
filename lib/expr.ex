@@ -11,6 +11,7 @@ defmodule Expr do
 
   defmacro __using__(_) do
     quote do
+      require Logger
       import Expr.DSL
     end
   end
@@ -18,7 +19,6 @@ defmodule Expr do
   def compile(name, children, opts \\ []) do
     template = %Template{name: name,
                          children: children}
-    IO.puts template
     Template.compile(template, opts)
   end
 end
