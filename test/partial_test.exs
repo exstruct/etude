@@ -43,6 +43,6 @@ defmodule ExprTest.Partial do
     partial: [
       "HI!"
     ]
-  ], ""
+  ], ["HI!", "HI!", "HI!", "HI!"]
 
 end

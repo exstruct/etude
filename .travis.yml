@@ -1,4 +1,12 @@
 language: elixir
 otp_release:
   - 17.4
-script: mix compile && mix coveralls.travis && MIX_ENV=bench mix bench test/*_test.exs
+before_install: cp config/config.exs.ci config/config.exs
+matrix:
+  include:
+    - env:
+      - TEST_SUITE="coveralls.travis"
+    - env:
+      - MIX_ENV=bench
+      - TEST_SUITE="bench test/*_test.exs"
+script: mix compile && mix $TEST_SUITE
