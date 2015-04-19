@@ -24,6 +24,7 @@ defmodule Expr.Node.Call do
       args = Macro.var(:args, nil)
 
       quote line: node.line do
+        ## after running some benchmarks inlining doesn't help much here
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             ## dependencies
@@ -48,7 +49,7 @@ defmodule Expr.Node.Call do
           unquote(args) = unquote(Children.vars(arguments, opts))
           id = unquote(Expr.Node.Call.compile_id_hash(mod, fun, arguments))
           case Expr.Memoize.get(id, scope: :call) do
-            nil ->
+            :undefined ->
               Logger.debug(fn ->
                 unquote("calling #{mod}.#{fun}(") <>
                   (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"

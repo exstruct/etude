@@ -30,6 +30,7 @@ defmodule Expr.Node.Comprehension do
       ]
 
       quote line: node.line do
+        @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             ## dependencies
@@ -40,6 +41,7 @@ defmodule Expr.Node.Comprehension do
           end
         end
 
+        @compile {:inline, [{unquote(exec), unquote(1 + length(op_args))}]}
         defp unquote(exec)({unquote(Utils.ready), :undefined}, unquote_splicing(op_args)) do
           Logger.debug(unquote("#{name} undefined"))
           {{unquote(Utils.ready), :undefined}, unquote(state)}

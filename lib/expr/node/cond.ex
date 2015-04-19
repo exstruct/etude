@@ -32,6 +32,7 @@ defmodule Expr.Node.Cond do
       name = Expr.Node.name(node, opts)
       expression = node.expression
       quote line: node.line do
+        @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             ## condition

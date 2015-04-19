@@ -32,7 +32,7 @@ defmodule Expr.Template do
 
       def unquote(name)(state, resolve, req \\ :erlang.make_ref()) do
         Logger.debug(unquote("#{name} init"))
-        unquote(loop)(0, state, resolve, req, nil)
+        unquote(loop)(0, state, resolve, req, 0)
       end
 
       def unquote(partial)(unquote_splicing(op_args), args) do

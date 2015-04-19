@@ -11,7 +11,7 @@ defmodule ExprTestHelper do
     mod = name
     |> String.split(" ")
     |> Enum.map(&String.capitalize/1)
-    mod = [hd(__CALLER__.context_modules) | mod]
+    mod = ["ExprTest#{:erlang.phash2(__CALLER__)}" | mod]
     |> Enum.join(".")
     |> String.to_atom
 
@@ -26,6 +26,7 @@ defmodule ExprTestHelper do
         if System.get_env("NATIVE") do
           @compile :native
           @compile {:hipe, [:o3]}
+          @compile :inline_list_funcs
         end
         use Expr
         alias Expr.Node.Assign
@@ -44,17 +45,18 @@ defmodule ExprTestHelper do
           end
         end
       end
-      test unquote(name) do
-        ref = :erlang.make_ref()
-        {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
-        unquote(assertion_block)
-        ## memoized test
-        {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
-        unquote(assertion_block)
-      end
       if Mix.env == :bench do
         bench unquote(name) do
           unquote(mod).unquote(main)(unquote(state), unquote(resolve))
+        end
+      else
+        test unquote(name) do
+          ref = :erlang.make_ref()
+          {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
+          unquote(assertion_block)
+          ## memoized test
+          {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
+          unquote(assertion_block)
         end
       end
     end

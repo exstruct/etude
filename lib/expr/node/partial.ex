@@ -21,6 +21,7 @@ defmodule Expr.Node.Partial do
       children = node.arguments
 
       quote line: node.line do
+        @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             ## dependencies
@@ -38,6 +39,7 @@ defmodule Expr.Node.Partial do
           end
         end
 
+        @compile {:inline, [{unquote(exec), unquote(length(children) + length(op_args))}]}
         defp unquote(exec)(unquote_splicing(Children.args(children, opts)), unquote_splicing(op_args)) do
           args = unquote(Children.vars(children, opts))
           ## create a new scope

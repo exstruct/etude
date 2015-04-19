@@ -4,14 +4,14 @@ defmodule Expr.Memoize do
   defmacro get(key, opts \\ []) do
     scope = Keyword.get(opts, :scope, scope())
     quote do
-      Process.get({unquote(req), unquote(scope), unquote(key)})
+      :erlang.get({unquote(req), unquote(scope), unquote(key)})
     end
   end
 
   defmacro put(key, value, opts \\ []) do
     scope = Keyword.get(opts, :scope, scope())
     quote do
-      Process.put({unquote(req), unquote(scope), unquote(key)}, unquote(value))
+      :erlang.put({unquote(req), unquote(scope), unquote(key)}, unquote(value))
     end
   end
 
@@ -20,7 +20,7 @@ defmodule Expr.Memoize do
 
     quote do
       case Expr.Memoize.get(unquote(key)) do
-        nil ->
+        :undefined ->
           case unquote(block) do
             {nil, _} = res ->
               res

@@ -11,6 +11,7 @@ defmodule Expr.Node.Collection do
     exec = "#{name}_exec" |> String.to_atom
 
     quote do
+      @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
       defp unquote(name)(unquote_splicing(op_args)) do
         Expr.Memoize.wrap unquote(name) do
           ## dependencies
@@ -38,13 +39,15 @@ defmodule Expr.Node.Collection do
     case Children.count(node) do
       0 ->
         [quote do
+          @compile {:inline, [{unquote(name), 0}]}
           defp unquote(name)() do
             {unquote(Expr.Utils.ready),
              unquote(construction)}
           end
         end]
-      _ ->
+      count ->
         elem(quote do
+          @compile {:inline, [{unquote(name), unquote(count)}]}
           defp unquote(name)(unquote_splicing(Children.args(node, opts))) do
             {unquote(Expr.Utils.ready),
              unquote(construction)}

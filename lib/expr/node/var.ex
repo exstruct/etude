@@ -14,7 +14,7 @@ defmodule Expr.Node.Var do
       name = Expr.Node.name(node, opts)
 
       quote do
-        ## TODO inline this function
+        @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
           unquote(Expr.Node.Assign.resolve(node, opts))(unquote_splicing(op_args))
         end
