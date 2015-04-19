@@ -23,8 +23,10 @@ defmodule ExprTestHelper do
 
     quote do
       defmodule unquote(mod) do
-        @compile :native
-        @compile {:hipe, [:o3]}
+        if System.get_env("NATIVE") do
+          @compile :native
+          @compile {:hipe, [:o3]}
+        end
         use Expr
         alias Expr.Node.Assign
         alias Expr.Node.Call
