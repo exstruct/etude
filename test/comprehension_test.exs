@@ -24,7 +24,7 @@ defmodule ExprTest.Comprehension do
     ]
   ], [1,2,3,4,5]
 
-  exprtest "should render a key/value comprehension", [
+  exprtest "should render a key-value comprehension", [
     render: [
       %Comprehension{
         collection: [1,2,3,4,5],

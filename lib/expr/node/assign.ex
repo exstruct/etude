@@ -18,6 +18,7 @@ defmodule Expr.Node.Assign do
       name = Expr.Node.name(node, opts)
 
       quote do
+        @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do
             unquote(Expr.Node.assign(node.expression, opts))

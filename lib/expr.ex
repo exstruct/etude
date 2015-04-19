@@ -10,9 +10,14 @@ defmodule Expr do
   end
 
   defmacro __using__(_) do
+    ## TODO allow disabling the native compilation
     quote do
       require Logger
       import Expr.DSL
+      @compile :native
+      @compile {:hipe, [:o3]}
+      @compile :inline_list_funcs
+      @compile :nowarn_unused_vars
     end
   end
 

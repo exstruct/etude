@@ -28,7 +28,9 @@ defmodule Expr.Children do
   def root(children, opts) do
     case List.last(children) do
       nil ->
-        Macro.escape({{Utils.ready, nil}, state})
+        quote do
+          {{unquote(Utils.ready), nil}, unquote(state)}
+        end
       child ->
         Expr.Node.call(child, opts)
     end

@@ -23,7 +23,9 @@ defmodule Expr.Mixfile do
   end
 
   defp deps do
-    [{:excoveralls, "~> 0.3", only: [:dev, :test]},
+    [{:excheck, "~> 0.2.3", only: [:dev, :test]},
+     {:triq, github: "krestenkrab/triq", only: [:dev, :test]},
+     {:excoveralls, "~> 0.3", only: [:dev, :test]},
      {:benchfella, "~> 0.2.0", only: [:dev, :test, :bench]}]
   end
 end

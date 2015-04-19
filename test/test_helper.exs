@@ -21,13 +21,8 @@ defmodule ExprTestHelper do
 
     resolve = &__MODULE__.resolve/7
 
-    quote do
+    module = quote do
       defmodule unquote(mod) do
-        if System.get_env("NATIVE") do
-          @compile :native
-          @compile {:hipe, [:o3]}
-          @compile :inline_list_funcs
-        end
         use Expr
         alias Expr.Node.Assign
         alias Expr.Node.Call
@@ -45,6 +40,10 @@ defmodule ExprTestHelper do
           end
         end
       end
+    end
+
+    quote do
+      unquote(module)
       if Mix.env == :bench do
         bench unquote(name) do
           unquote(mod).unquote(main)(unquote(state), unquote(resolve))

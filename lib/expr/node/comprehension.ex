@@ -30,6 +30,7 @@ defmodule Expr.Node.Comprehension do
       ]
 
       quote line: node.line do
+        @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
           Expr.Memoize.wrap unquote(name) do

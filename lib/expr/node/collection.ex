@@ -11,6 +11,7 @@ defmodule Expr.Node.Collection do
     exec = "#{name}_exec" |> String.to_atom
 
     quote do
+      @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
       @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
       defp unquote(name)(unquote_splicing(op_args)) do
         Expr.Memoize.wrap unquote(name) do

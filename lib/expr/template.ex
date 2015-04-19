@@ -63,7 +63,7 @@ defmodule Expr.Template do
       defp unquote(wait)(count, unquote_splicing(op_args)) do
         Logger.debug(fn -> unquote("#{name} wait (") <> to_string(count) <> ")" end)
         unquote(wait_block(immediate, timeout, line, quote do
-          {:error, :timeout}
+          {:error, :timeout, unquote(state)}
         end))
       end
 
@@ -81,9 +81,11 @@ defmodule Expr.Template do
   defp wait_block(name, timeout, line, loop) do
     quote line: line do
       receive do
-        {:ok, val, {ref, key}} when is_reference(ref) ->
+        {:ok, val, {ref, id}} when is_reference(ref) ->
           out = {unquote(ready), val}
-          Expr.Memoize.put(key, out)
+          Expr.Memoize.put(id, out, scope: :call)
+          unquote(name)(count, unquote_splicing(op_args))
+        {:DOWN, _ref, :process, _pid, :normal} ->
           unquote(name)(count, unquote_splicing(op_args))
       after unquote(timeout) ->
         unquote(loop)
