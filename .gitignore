@@ -5,3 +5,5 @@ erl_crash.dump
 cover
 config
 mix.lock
+bench/graphs
+bench/snapshots

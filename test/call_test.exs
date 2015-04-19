@@ -1,5 +1,4 @@
 defmodule ExprTest.Call do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should call a function with no arguments", [

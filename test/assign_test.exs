@@ -1,5 +1,4 @@
 defmodule ExprTest.Assign do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should assign a variable", [

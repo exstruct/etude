@@ -1,5 +1,4 @@
 defmodule ExprTest.Partial do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should call a partial", [
@@ -33,5 +32,17 @@ defmodule ExprTest.Partial do
       %Var{name: :foo}
     ]
   ], {"Parent", {"Child 1", "Child 2"}}
+
+  exprtest "should render a partial inside a comprehension", [
+    render: [
+      %Comprehension{
+        collection: [1,2,3,4],
+        expression: %Partial{function: :partial}
+      }
+    ],
+    partial: [
+      "HI!"
+    ]
+  ], ""
 
 end

@@ -1,5 +1,4 @@
 defmodule ExprTest.Comprehension do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should render a static comprehension", [

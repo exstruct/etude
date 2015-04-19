@@ -1,6 +1,8 @@
 defmodule ExprTestHelper do
   defmacro __using__(_) do
     quote do
+      use ExUnit.Case
+      use Benchfella
       import ExprTestHelper
     end
   end
@@ -21,6 +23,8 @@ defmodule ExprTestHelper do
 
     quote do
       defmodule unquote(mod) do
+        @compile :native
+        @compile {:hipe, [:o3]}
         use Expr
         alias Expr.Node.Assign
         alias Expr.Node.Call
@@ -45,6 +49,11 @@ defmodule ExprTestHelper do
         ## memoized test
         {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
         unquote(assertion_block)
+      end
+      if Mix.env == :bench do
+        bench unquote(name) do
+          unquote(mod).unquote(main)(unquote(state), unquote(resolve))
+        end
       end
     end
   end
@@ -80,3 +89,6 @@ defmodule ExprTestHelper do
 end
 
 ExUnit.start()
+if Mix.env == :bench do
+  Benchfella.start
+end

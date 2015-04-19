@@ -1,5 +1,4 @@
 defmodule ExprTest.Cond do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should render a no-armed cond", [

@@ -1,4 +1,4 @@
 language: elixir
 otp_release:
   - 17.4
-script: mix compile && mix coveralls.travis
+script: mix compile && mix coveralls.travis && MIX_ENV=bench mix bench test/*_test.exs

@@ -1,5 +1,4 @@
 defmodule ExprTest.Literal do
-  use ExUnit.Case
   use ExprTestHelper
 
   exprtest "should render nil without expressions", [
