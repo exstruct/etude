@@ -3,10 +3,11 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "1.0.0",
+     version: "0.1.0",
      elixir: "~> 1.0",
      deps: deps,
      test_coverage: [tool: ExCoveralls],
+     package: package,
      aliases: aliases]
   end
 
@@ -27,5 +28,12 @@ defmodule Etude.Mixfile do
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:excoveralls, "~> 0.3", only: [:dev, :test]},
      {:benchfella, "~> 0.2.0", only: [:dev, :test, :bench]}]
+  end
+
+  defp package do
+    [files: ["lib", "mix.exs", "README*"],
+     contributors: ["Cameron Bytheway"],
+     licenses: ["MIT"],
+     links: %{"GitHub" => "https://github.com/camshaft/etude"}]
   end
 end
