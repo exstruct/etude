@@ -1,21 +1,21 @@
-defmodule Expr.Node.Call do
+defmodule Etude.Node.Call do
   defstruct module: nil,
             function: nil,
             arguments: [],
             attrs: %{},
             line: 1
 
-  alias Expr.Children
-  import Expr.Vars
+  alias Etude.Children
+  import Etude.Vars
 
-  defimpl Expr.Node, for: Expr.Node.Call do
-    defdelegate name(node, opts), to: Expr.Node.Any
-    defdelegate call(node, opts), to: Expr.Node.Any
-    defdelegate assign(node, opts), to: Expr.Node.Any
-    defdelegate var(node, opts), to: Expr.Node.Any
+  defimpl Etude.Node, for: Etude.Node.Call do
+    defdelegate name(node, opts), to: Etude.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate var(node, opts), to: Etude.Node.Any
 
     def compile(node, opts) do
-      name = Expr.Node.name(node, opts)
+      name = Etude.Node.name(node, opts)
       mod = node.module
       fun = node.function
       arguments = node.arguments
@@ -27,7 +27,7 @@ defmodule Expr.Node.Call do
         ## after running some benchmarks inlining doesn't help much here
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         defp unquote(name)(unquote_splicing(op_args)) do
-          Expr.Memoize.wrap unquote(name) do
+          Etude.Memoize.wrap unquote(name) do
             ## dependencies
             unquote_splicing(Children.call(arguments, opts))
 
@@ -48,8 +48,8 @@ defmodule Expr.Node.Call do
 
         defp unquote(exec)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
           unquote(args) = unquote(Children.vars(arguments, opts))
-          id = unquote(Expr.Node.Call.compile_id_hash(mod, fun, arguments))
-          case Expr.Memoize.get(id, scope: :call) do
+          id = unquote(Etude.Node.Call.compile_id_hash(mod, fun, arguments))
+          case Etude.Memoize.get(id, scope: :call) do
             :undefined ->
               Logger.debug(fn ->
                 unquote("calling #{mod}.#{fun}(") <>
@@ -65,15 +65,15 @@ defmodule Expr.Node.Call do
                 ## TODO handle pids
                 {:ok, pid} when is_pid(pid) ->
                   ref = :erlang.monitor(:process, pid)
-                  Expr.Memoize.put(id, ref, scope: :call)
+                  Etude.Memoize.put(id, ref, scope: :call)
                   :pending
                 {:ok, val} ->
-                  out = {unquote(Expr.Utils.ready), val}
-                  Expr.Memoize.put(id, out, scope: :call)
+                  out = {unquote(Etude.Utils.ready), val}
+                  Etude.Memoize.put(id, out, scope: :call)
                   {out, unquote(state)}
                 {:ok, val, state} ->
-                  out = {unquote(Expr.Utils.ready), val}
-                  Expr.Memoize.put(id, out, scope: :call)
+                  out = {unquote(Etude.Utils.ready), val}
+                  Etude.Memoize.put(id, out, scope: :call)
                   {out, state}
               end
             ref when is_reference(ref) ->

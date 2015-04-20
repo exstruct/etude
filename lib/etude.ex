@@ -1,11 +1,11 @@
-defmodule Expr do
-  alias Expr.Template
+defmodule Etude do
+  alias Etude.Template
 
   defmodule DSL do
-    defmacro defexpr(qname, qchildren) do
+    defmacro defetude(qname, qchildren) do
       {name, _} = Code.eval_quoted(qname, __CALLER__.vars, __CALLER__)
       {children, _} = Code.eval_quoted(qchildren, __CALLER__.vars, __CALLER__)
-      Expr.compile(name, children)
+      Etude.compile(name, children)
     end
   end
 
@@ -13,7 +13,7 @@ defmodule Expr do
     ## TODO allow disabling the native compilation
     quote do
       require Logger
-      import Expr.DSL
+      import Etude.DSL
       @compile :native
       @compile {:hipe, [:o3]}
       @compile :inline_list_funcs

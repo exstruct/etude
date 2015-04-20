@@ -1,8 +1,8 @@
-defmodule Expr.Mixfile do
+defmodule Etude.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :expr,
+    [app: :etude,
      version: "1.0.0",
      elixir: "~> 1.0",
      deps: deps,

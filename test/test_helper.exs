@@ -1,17 +1,17 @@
-defmodule ExprTestHelper do
+defmodule EtudeTestHelper do
   defmacro __using__(_) do
     quote do
       use ExUnit.Case
       use Benchfella
-      import ExprTestHelper
+      import EtudeTestHelper
     end
   end
 
-  defmacro exprtest(name, functions, assertion, state \\ :STATE) do
+  defmacro etudetest(name, functions, assertion, state \\ :STATE) do
     mod = name
     |> String.split(" ")
     |> Enum.map(&String.capitalize/1)
-    mod = ["ExprTest#{:erlang.phash2(__CALLER__)}" | mod]
+    mod = ["EtudeTest#{:erlang.phash2(__CALLER__)}" | mod]
     |> Enum.join(".")
     |> String.to_atom
 
@@ -23,19 +23,19 @@ defmodule ExprTestHelper do
 
     module = quote do
       defmodule unquote(mod) do
-        use Expr
-        alias Expr.Node.Assign
-        alias Expr.Node.Call
-        alias Expr.Node.Collection
-        alias Expr.Node.Comprehension
-        alias Expr.Node.Cond
-        alias Expr.Node.Partial
-        alias Expr.Node.Var
+        use Etude
+        alias Etude.Node.Assign
+        alias Etude.Node.Call
+        alias Etude.Node.Collection
+        alias Etude.Node.Comprehension
+        alias Etude.Node.Cond
+        alias Etude.Node.Partial
+        alias Etude.Node.Var
 
         unquote_splicing do
           for {name, ast} <- functions do
             quote do
-              defexpr unquote(name), unquote(ast)
+              defetude unquote(name), unquote(ast)
             end
           end
         end

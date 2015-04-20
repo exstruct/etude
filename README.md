@@ -1,4 +1,4 @@
-expr [![Build Status](https://travis-ci.org/camshaft/expr.png?branch=master)](https://travis-ci.org/camshaft/expr) [![Coverage Status](https://coveralls.io/repos/camshaft/expr/badge.svg)](https://coveralls.io/r/camshaft/expr)
+etude [![Build Status](https://travis-ci.org/camshaft/etude.png?branch=master)](https://travis-ci.org/camshaft/etude) [![Coverage Status](https://coveralls.io/repos/camshaft/etude/badge.svg)](https://coveralls.io/r/camshaft/etude)
 ====
 
-Erlang/eliXir Parallel Runtime
+parallel computation coordination compiler for erlang/elixir

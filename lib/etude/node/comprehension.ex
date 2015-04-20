@@ -1,4 +1,4 @@
-defmodule Expr.Node.Comprehension do
+defmodule Etude.Node.Comprehension do
   defstruct collection: [],
             key: nil,
             value: nil,
@@ -6,19 +6,19 @@ defmodule Expr.Node.Comprehension do
             type: :list,
             line: 1
 
-  defimpl Expr.Node, for: Expr.Node.Comprehension do
-    alias Expr.Children
-    alias Expr.Utils
-    alias Expr.Node.Comprehension
-    import Expr.Vars
+  defimpl Etude.Node, for: Etude.Node.Comprehension do
+    alias Etude.Children
+    alias Etude.Utils
+    alias Etude.Node.Comprehension
+    import Etude.Vars
 
-    defdelegate call(node, opts), to: Expr.Node.Any
-    defdelegate assign(node, opts), to: Expr.Node.Any
-    defdelegate var(node, opts), to: Expr.Node.Any
-    defdelegate name(node, opts), to: Expr.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate var(node, opts), to: Etude.Node.Any
+    defdelegate name(node, opts), to: Etude.Node.Any
 
     def compile(node, opts) do
-      name = Expr.Node.name(node, opts)
+      name = Etude.Node.name(node, opts)
       exec = "#{name}_exec" |> String.to_atom
       collection = node.collection
 
@@ -33,12 +33,12 @@ defmodule Expr.Node.Comprehension do
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
-          Expr.Memoize.wrap unquote(name) do
+          Etude.Memoize.wrap unquote(name) do
             ## dependencies
-            unquote(Expr.Node.assign(collection, opts))
+            unquote(Etude.Node.assign(collection, opts))
 
             ## exec
-            unquote(exec)(unquote(Expr.Node.var(collection, opts)), unquote_splicing(op_args))
+            unquote(exec)(unquote(Etude.Node.var(collection, opts)), unquote_splicing(op_args))
           end
         end
 
@@ -78,7 +78,7 @@ defmodule Expr.Node.Comprehension do
           (unquote(item), {unquote(i), nil, unquote(state)}) ->
             unquote(child_scope(:item))
             unquote(assign_vars(node, opts))
-            unquote(Expr.Node.assign(expression, opts))
+            unquote(Etude.Node.assign(expression, opts))
             {unquote(i) + 1, nil, unquote(state)}
           (unquote(item), {unquote(i), acc, unquote(state)}) ->
             ## create a new scope based on the item's value
@@ -88,8 +88,8 @@ defmodule Expr.Node.Comprehension do
             unquote(assign_vars(node, opts))
 
             ## dependency
-            unquote(Expr.Node.assign(expression, opts))
-            case unquote(Expr.Node.var(expression, opts)) do
+            unquote(Etude.Node.assign(expression, opts))
+            case unquote(Etude.Node.var(expression, opts)) do
               nil ->
                 {unquote(i) + 1, nil, unquote(state)}
               {unquote(Utils.ready), val} ->
@@ -106,17 +106,17 @@ defmodule Expr.Node.Comprehension do
       []
     end
     defp assign_vars(%Comprehension{key: nil, value: value}, opts) do
-      v = Expr.Node.Assign.resolve(value, opts)
+      v = Etude.Node.Assign.resolve(value, opts)
       [quote do
-        Expr.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
+        Etude.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
       end]
     end
     defp assign_vars(%Comprehension{key: key, value: value}, opts) do
-      v = Expr.Node.Assign.resolve(value, opts)
-      k = Expr.Node.Assign.resolve(key, opts)
+      v = Etude.Node.Assign.resolve(value, opts)
+      k = Etude.Node.Assign.resolve(key, opts)
       quote do
-        Expr.Memoize.put(unquote(k), {unquote(Utils.ready), unquote(i)})
-        Expr.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
+        Etude.Memoize.put(unquote(k), {unquote(Utils.ready), unquote(i)})
+        Etude.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
       end
     end
 

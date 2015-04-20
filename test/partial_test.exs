@@ -1,7 +1,7 @@
-defmodule ExprTest.Partial do
-  use ExprTestHelper
+defmodule EtudeTest.Partial do
+  use EtudeTestHelper
 
-  exprtest "should call a partial", [
+  etudetest "should call a partial", [
     render: [
       %Partial{
         function: :user
@@ -12,7 +12,7 @@ defmodule ExprTest.Partial do
     ]
   ], %{"name" => "Robert"}
 
-  exprtest "should call a partial with a different scope", [
+  etudetest "should call a partial with a different scope", [
     render: [
       %Assign{name: :foo, expression: "Parent"},
       {
@@ -33,7 +33,7 @@ defmodule ExprTest.Partial do
     ]
   ], {"Parent", {"Child 1", "Child 2"}}
 
-  exprtest "should render a partial inside a comprehension", [
+  etudetest "should render a partial inside a comprehension", [
     render: [
       %Comprehension{
         collection: [1,2,3,4],

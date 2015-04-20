@@ -1,7 +1,7 @@
-defmodule ExprTest.Assign do
-  use ExprTestHelper
+defmodule EtudeTest.Assign do
+  use EtudeTestHelper
 
-  exprtest "should assign a variable", [
+  etudetest "should assign a variable", [
     render: [
       %Assign{
         name: :var,
@@ -13,7 +13,7 @@ defmodule ExprTest.Assign do
     ]
   ], "Robert"
 
-  exprtest "should use a nested variable", [
+  etudetest "should use a nested variable", [
     render: [
       %Assign{
         name: :key,

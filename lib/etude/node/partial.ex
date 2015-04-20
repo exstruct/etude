@@ -1,20 +1,20 @@
-defmodule Expr.Node.Partial do
+defmodule Etude.Node.Partial do
   defstruct module: {:__MODULE__, [], nil},
             function: nil,
             arguments: [],
             line: 1
 
-  alias Expr.Children
-  import Expr.Vars
+  alias Etude.Children
+  import Etude.Vars
 
-  defimpl Expr.Node, for: Expr.Node.Partial do
-    defdelegate name(node, opts), to: Expr.Node.Any
-    defdelegate call(node, context), to: Expr.Node.Any
-    defdelegate assign(node, context), to: Expr.Node.Any
-    defdelegate var(node, context), to: Expr.Node.Any
+  defimpl Etude.Node, for: Etude.Node.Partial do
+    defdelegate name(node, opts), to: Etude.Node.Any
+    defdelegate call(node, context), to: Etude.Node.Any
+    defdelegate assign(node, context), to: Etude.Node.Any
+    defdelegate var(node, context), to: Etude.Node.Any
 
     def compile(node, opts) do
-      name = Expr.Node.name(node, opts)
+      name = Etude.Node.name(node, opts)
       mod = node.module
       fun = "#{node.function}_partial" |> String.to_atom
       exec = "#{name}_exec" |> String.to_atom
@@ -24,7 +24,7 @@ defmodule Expr.Node.Partial do
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
-          Expr.Memoize.wrap unquote(name) do
+          Etude.Memoize.wrap unquote(name) do
             ## dependencies
             unquote_splicing(Children.call(children, opts))
 

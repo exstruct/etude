@@ -1,13 +1,13 @@
-defmodule Expr.Children do
-  alias Expr.Utils
-  import Expr.Vars
+defmodule Etude.Children do
+  alias Etude.Utils
+  import Etude.Vars
 
   def compile(children, opts) when is_tuple(children) do
     compile(Tuple.to_list(children), opts)
   end
   def compile(children, opts) do
     Enum.reduce(children, [], fn(child, acc) ->
-      case Expr.Node.compile(child, opts) do
+      case Etude.Node.compile(child, opts) do
         ast when is_list(ast) ->
           acc ++ ast
         {:__block__, _, ast} ->
@@ -32,7 +32,7 @@ defmodule Expr.Children do
           {{unquote(Utils.ready), nil}, unquote(state)}
         end
       child ->
-        Expr.Node.call(child, opts)
+        Etude.Node.call(child, opts)
     end
   end
 
@@ -41,7 +41,7 @@ defmodule Expr.Children do
   end
   def call(children, opts) do
     Enum.map(children, fn(child) ->
-      Expr.Node.assign(child, opts)
+      Etude.Node.assign(child, opts)
     end)
   end
 
@@ -50,7 +50,7 @@ defmodule Expr.Children do
   end
   def vars(children, opts) do
     Enum.map(children, fn(child) ->
-      Expr.Node.var(child, opts)
+      Etude.Node.var(child, opts)
     end)
   end
 
@@ -60,7 +60,7 @@ defmodule Expr.Children do
   def args(children, opts) do
     Enum.map(children, fn(child) ->
       quote do
-        {unquote(Utils.ready), unquote(Expr.Node.var(child, opts))}
+        {unquote(Utils.ready), unquote(Etude.Node.var(child, opts))}
       end
     end)
   end

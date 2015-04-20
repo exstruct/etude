@@ -1,14 +1,14 @@
-defmodule Expr.Template do
+defmodule Etude.Template do
   defstruct name: nil,
             line: 1,
             children: []
 
-  import Expr.Utils
-  import Expr.Vars
+  import Etude.Utils
+  import Etude.Vars
 
-  defimpl String.Chars, for: Expr.Template do
+  defimpl String.Chars, for: Etude.Template do
     def to_string(template) do
-      Expr.Template.compile(template)
+      Etude.Template.compile(template)
       |> Macro.to_string
     end
   end
@@ -25,10 +25,10 @@ defmodule Expr.Template do
     wait = "#{name}_wait" |> String.to_atom
     immediate = "#{name}_wait_immediate" |> String.to_atom
 
-    root = Expr.Children.root(template.children, opts)
+    root = Etude.Children.root(template.children, opts)
 
     quote line: line do
-      require Expr.Memoize
+      require Etude.Memoize
 
       def unquote(name)(state, resolve, req \\ :erlang.make_ref()) do
         Logger.debug(unquote("#{name} init"))
@@ -37,7 +37,7 @@ defmodule Expr.Template do
 
       def unquote(partial)(unquote_splicing(op_args), args) do
         Logger.debug(unquote("#{name} partial"))
-        Expr.Memoize.put({unquote(name), :__ARGS__}, args)
+        Etude.Memoize.put({unquote(name), :__ARGS__}, args)
         case unquote(root) do
           {{unquote(ready), _} = val, state} ->
             {val, state}
@@ -74,7 +74,7 @@ defmodule Expr.Template do
         end))
       end
 
-      unquote_splicing(Expr.Children.compile(template.children, opts))
+      unquote_splicing(Etude.Children.compile(template.children, opts))
     end
   end
 
@@ -83,7 +83,7 @@ defmodule Expr.Template do
       receive do
         {:ok, val, {ref, id}} when is_reference(ref) ->
           out = {unquote(ready), val}
-          Expr.Memoize.put(id, out, scope: :call)
+          Etude.Memoize.put(id, out, scope: :call)
           unquote(name)(count, unquote_splicing(op_args))
         {:DOWN, _ref, :process, _pid, :normal} ->
           unquote(name)(count, unquote_splicing(op_args))

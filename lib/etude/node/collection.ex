@@ -1,20 +1,20 @@
-defmodule Expr.Node.Collection do
-  alias Expr.Children
-  import Expr.Vars
+defmodule Etude.Node.Collection do
+  alias Etude.Children
+  import Etude.Vars
 
   defprotocol Construction do
     def construct(node, vars)  
   end
 
   def compile(node, opts) do
-    name = Expr.Node.name(node, opts)
+    name = Etude.Node.name(node, opts)
     exec = "#{name}_exec" |> String.to_atom
 
     quote do
       @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
       @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
       defp unquote(name)(unquote_splicing(op_args)) do
-        Expr.Memoize.wrap unquote(name) do
+        Etude.Memoize.wrap unquote(name) do
           ## dependencies
           unquote_splicing(Children.call(node, opts))
 
@@ -42,7 +42,7 @@ defmodule Expr.Node.Collection do
         [quote do
           @compile {:inline, [{unquote(name), 0}]}
           defp unquote(name)() do
-            {unquote(Expr.Utils.ready),
+            {unquote(Etude.Utils.ready),
              unquote(construction)}
           end
         end]
@@ -50,7 +50,7 @@ defmodule Expr.Node.Collection do
         elem(quote do
           @compile {:inline, [{unquote(name), unquote(count)}]}
           defp unquote(name)(unquote_splicing(Children.args(node, opts))) do
-            {unquote(Expr.Utils.ready),
+            {unquote(Etude.Utils.ready),
              unquote(construction)}
           end
           defp unquote(name)(unquote_splicing(Children.wildcard(node, opts))) do

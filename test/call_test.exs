@@ -1,7 +1,7 @@
-defmodule ExprTest.Call do
-  use ExprTestHelper
+defmodule EtudeTest.Call do
+  use EtudeTestHelper
 
-  exprtest "should call a function with no arguments", [
+  etudetest "should call a function with no arguments", [
     render: [
       %Call{
         module: :math,
@@ -10,7 +10,7 @@ defmodule ExprTest.Call do
     ]
   ], 0
 
-  exprtest "should call a function with static arguments", [
+  etudetest "should call a function with static arguments", [
     render: [
       %Call{
         module: :math,
@@ -23,7 +23,7 @@ defmodule ExprTest.Call do
     ]
   ], 2
 
-  exprtest "should memoize function calls", [
+  etudetest "should memoize function calls", [
     render: [
       {%Call{
         module: :test,

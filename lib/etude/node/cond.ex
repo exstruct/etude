@@ -1,11 +1,11 @@
-defmodule Expr.Node.Cond do
+defmodule Etude.Node.Cond do
   defstruct expression: nil,
             arms: [],
             line: 1
 
-  alias Expr.Children
-  alias Expr.Utils
-  import Expr.Vars
+  alias Etude.Children
+  alias Etude.Utils
+  import Etude.Vars
 
   def normalize(node = %{:arms => []}) do
     Map.put(node, :arms, [:undefined, :undefined])
@@ -17,38 +17,38 @@ defmodule Expr.Node.Cond do
     node
   end
 
-  defimpl Expr.Node, for: Expr.Node.Cond do
-    defdelegate call(node, opts), to: Expr.Node.Any
-    defdelegate assign(node, opts), to: Expr.Node.Any
-    defdelegate var(node, opts), to: Expr.Node.Any
+  defimpl Etude.Node, for: Etude.Node.Cond do
+    defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate var(node, opts), to: Etude.Node.Any
 
     def name(node, opts) do
-      Expr.Node.Cond.normalize(node)
-      |> Expr.Node.Any.name(opts)
+      Etude.Node.Cond.normalize(node)
+      |> Etude.Node.Any.name(opts)
     end
 
     def compile(node, opts) do
-      node = %{:arms => arms = [arm1, arm2]} = Expr.Node.Cond.normalize(node)
-      name = Expr.Node.name(node, opts)
+      node = %{:arms => arms = [arm1, arm2]} = Etude.Node.Cond.normalize(node)
+      name = Etude.Node.name(node, opts)
       expression = node.expression
       quote line: node.line do
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
-          Expr.Memoize.wrap unquote(name) do
+          Etude.Memoize.wrap unquote(name) do
             ## condition
-            unquote(Expr.Node.assign(expression, opts))
+            unquote(Etude.Node.assign(expression, opts))
 
             # look at the condition value
-            case unquote(Expr.Node.var(expression, opts)) do
+            case unquote(Etude.Node.var(expression, opts)) do
               # falsy
               {unquote(Utils.ready), val} when val in [false, nil, :undefined] ->
-                unquote(Expr.Node.assign(arm2, opts))
-                {unquote(Expr.Node.var(arm2, opts)), unquote(state)}
+                unquote(Etude.Node.assign(arm2, opts))
+                {unquote(Etude.Node.var(arm2, opts)), unquote(state)}
               # truthy
               {unquote(Utils.ready), _} ->
-                unquote(Expr.Node.assign(arm1, opts))
-                {unquote(Expr.Node.var(arm1, opts)), unquote(state)}
+                unquote(Etude.Node.assign(arm1, opts))
+                {unquote(Etude.Node.var(arm1, opts)), unquote(state)}
               # not ready
               _ ->
                 {nil, unquote(state)}

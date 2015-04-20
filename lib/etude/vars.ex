@@ -1,4 +1,4 @@
-defmodule Expr.Vars do
+defmodule Etude.Vars do
   def state(context \\ nil) do
     Macro.var(:_state, context)
   end

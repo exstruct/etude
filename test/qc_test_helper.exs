@@ -1,4 +1,4 @@
-defmodule ExprTest.QC.Helper do
+defmodule EtudeTest.QC.Helper do
   def start_link do
     Agent.start_link(fn ->
       {HashSet.new}

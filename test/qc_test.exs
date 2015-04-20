@@ -1,17 +1,17 @@
 ## there's gotta be a better way
 Code.eval_file("./test/qc_test_helper.exs")
 
-defmodule ExprTest.QC do
+defmodule EtudeTest.QC do
   use ExUnit.Case, async: false
   use ExCheck
-  use Expr
-  alias Expr.Node.Assign
-  alias Expr.Node.Call
-  alias Expr.Node.Collection
-  alias Expr.Node.Comprehension
-  alias Expr.Node.Cond
-  alias Expr.Node.Partial
-  alias Expr.Node.Var
+  use Etude
+  alias Etude.Node.Assign
+  alias Etude.Node.Call
+  alias Etude.Node.Collection
+  alias Etude.Node.Comprehension
+  alias Etude.Node.Cond
+  alias Etude.Node.Partial
+  alias Etude.Node.Var
 
   ## TODO lib this
   defmacro delay(x) do
@@ -22,7 +22,7 @@ defmodule ExprTest.QC do
     end
   end
 
-  def smaller(domain, factor \\ 4) do
+  def smaller(domain, factor \\ 8) do
     sized fn(size) ->
       resize(:random.uniform((div(size, factor))+1), domain)
     end
@@ -49,11 +49,11 @@ defmodule ExprTest.QC do
   end
   ## END LIB
 
-  def expr_literal do
-    sized &expr_literal/1
+  def etude_literal do
+    sized &etude_literal/1
   end
 
-  def expr_literal(0) do
+  def etude_literal(0) do
     oneof [
       int,
       atom,
@@ -62,76 +62,76 @@ defmodule ExprTest.QC do
       char
     ]
   end
-  def expr_literal(k) do
+  def etude_literal(k) do
     frequency [
-      {40, expr_literal(0)},
-      {3, list(smaller(delay(expr_expression)))},
-      {3, map(smaller(delay(expr_expression)),
-              smaller(delay(expr_expression)))},
-      {2, tuple(smaller(delay(expr_expression)))}
+      {40, etude_literal(0)},
+      {3, list(smaller(delay(etude_expression)))},
+      {3, map(smaller(delay(etude_expression), 12),
+              smaller(delay(etude_expression)))},
+      {2, tuple(smaller(delay(etude_expression)))}
     ]
   end
 
-  def expr_assign do
+  def etude_assign do
     assign = exq_struct %Assign{
       name: atom,
-      expression: delay(expr_expression),
+      expression: delay(etude_expression),
       line: pos_integer
     }
     bind assign, fn(var) ->
-      ExprTest.QC.Helper.put_var(var.name)
+      EtudeTest.QC.Helper.put_var(var.name)
       var
     end
   end
 
-  def expr_call do
+  def etude_call do
     exq_struct %Call{
       module: atom,
       function: atom,
-      arguments: [bool(), int(0, 100) | list(smaller(delay(expr_expression)))],
+      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)))],
       line: pos_integer
     }
   end
 
-  def expr_cond do
+  def etude_cond do
     exq_struct %Cond{
-      expression: smaller(delay(expr_expression)),
+      expression: smaller(delay(etude_expression)),
       arms: delay(oneof [
         [],
-        [smaller(expr_expression)],
-        [smaller(expr_expression), smaller(expr_expression)]
+        [smaller(etude_expression)],
+        [smaller(etude_expression), smaller(etude_expression)]
       ]),
       line: pos_integer
     }
   end
 
   ## TODO
-  def expr_comprehension do
+  def etude_comprehension do
     exq_struct %Comprehension{
-      expression: delay(list(expr_expression))
+      expression: delay(list(etude_expression))
     }
   end
 
-  def expr_expression do
+  def etude_expression do
     frequency [
       {50, oneof [
-        expr_literal
+        etude_literal
       ]},
       {10, oneof [
-        expr_cond,
-        expr_call
+        etude_cond,
+        etude_call
       ]},
       {2, oneof [
-        expr_var
+        etude_var
       ]}
     ]
   end
 
-  def expr_oplist do
-    domain(:expr_oplist, fn(self, size) ->
-      ExprTest.QC.Helper.reset
-      {_, vars} = pick(expr_varlist, size)
-      {_, main} = pick(expr_expression, size)
+  def etude_oplist do
+    domain(:etude_oplist, fn(self, size) ->
+      EtudeTest.QC.Helper.reset
+      {_, vars} = pick(etude_varlist, size)
+      {_, main} = pick(smaller(etude_expression), size)
       {self, vars ++ [main]}
     end, fn(self, val) ->
       ## TODO
@@ -139,14 +139,14 @@ defmodule ExprTest.QC do
     end)
   end
 
-  def expr_var do
-    domain(:expr_varname, fn(self, size) ->
-      case ExprTest.QC.Helper.get_vars do
+  def etude_var do
+    domain(:etude_varname, fn(self, size) ->
+      case EtudeTest.QC.Helper.get_vars do
         [] ->
-          {_, var} = pick(expr_literal, size)
+          {_, var} = pick(etude_literal(0), size)
           {self, var}
         vars ->
-          {_, var} = pick(expr_varstruct(oneof(vars)), size)
+          {_, var} = pick(etude_varstruct(oneof(vars)), size)
           {self, var}
       end
     end, fn(self, val) ->
@@ -155,11 +155,11 @@ defmodule ExprTest.QC do
     end)
   end
 
-  def expr_varlist do
-    smaller(list(smaller(expr_assign, 10)))
+  def etude_varlist do
+    smaller(list(smaller(etude_assign)))
   end
 
-  def expr_varstruct(name) do
+  def etude_varstruct(name) do
     exq_struct %Var{
       name: name,
       line: pos_integer
@@ -168,14 +168,19 @@ defmodule ExprTest.QC do
 
   if Mix.env == :test do
     @tag timeout: :infinity
-    property :expr do
-      ExprTest.QC.Helper.start_link
-      for_all ast in expr_oplist do
+    property :etude do
+      EtudeTest.QC.Helper.start_link
+      for_all ast in etude_oplist do
         main = :render
+        IO.puts "\n\n==========================="
+        IO.puts "===== compile:begin"
         mod = create_module(ast, main)
+        IO.puts "===== compile:end #{mod}"
         ref = :erlang.make_ref
         state = :STATE
+        IO.puts "===== render:begin"
         {time, {out1, state1}} = :timer.tc(mod, main, [state, &resolve/7, ref])
+        IO.puts "===== render:end #{time}"
         # TODO report timings and metrics
         {out2, state2} = apply(mod, main, [state, &resolve/7, ref])
         state1 == state and state2 == state and
@@ -195,15 +200,15 @@ defmodule ExprTest.QC do
   end
 
   def create_module(x, main) do
-    name = "ExprTest.QC.#{:erlang.phash2({x, :os.timestamp})}" |> String.to_atom
+    name = "EtudeTest.QC.#{:erlang.phash2({x, :os.timestamp})}" |> String.to_atom
     mod = quote do
       defmodule unquote(name) do
-        use Expr
-        defexpr unquote(main), unquote([Macro.escape(x)])
+        use Etude
+        defetude unquote(main), unquote([Macro.escape(x)])
         # unquote_splicing do
         #   for {name, ast} <- functions do
         #     quote do
-        #       defexpr unquote(name), unquote(ast)
+        #       defetude unquote(name), unquote(ast)
         #     end
         #   end
         # end

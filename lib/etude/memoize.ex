@@ -1,5 +1,5 @@
-defmodule Expr.Memoize do
-  import Expr.Vars
+defmodule Etude.Memoize do
+  import Etude.Vars
 
   defmacro get(key, opts \\ []) do
     scope = Keyword.get(opts, :scope, scope())
@@ -19,13 +19,13 @@ defmodule Expr.Memoize do
     block = Keyword.get(opts, :do)
 
     quote do
-      case Expr.Memoize.get(unquote(key)) do
+      case Etude.Memoize.get(unquote(key)) do
         :undefined ->
           case unquote(block) do
             {nil, _} = res ->
               res
             {val, _} = res ->
-              Expr.Memoize.put(unquote(key), val)
+              Etude.Memoize.put(unquote(key), val)
               res
           end
         val ->

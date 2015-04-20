@@ -1,7 +1,7 @@
-defmodule ExprTest.Comprehension do
-  use ExprTestHelper
+defmodule EtudeTest.Comprehension do
+  use EtudeTestHelper
 
-  exprtest "should render a static comprehension", [
+  etudetest "should render a static comprehension", [
     render: [
       %Comprehension{
         collection: [1,2,3,4,5],
@@ -10,7 +10,7 @@ defmodule ExprTest.Comprehension do
     ]
   ], [:ITEM, :ITEM, :ITEM, :ITEM, :ITEM]
 
-  exprtest "should render a value comprehension", [
+  etudetest "should render a value comprehension", [
     render: [
       %Comprehension{
         collection: [1,2,3,4,5],
@@ -24,7 +24,7 @@ defmodule ExprTest.Comprehension do
     ]
   ], [1,2,3,4,5]
 
-  exprtest "should render a key-value comprehension", [
+  etudetest "should render a key-value comprehension", [
     render: [
       %Comprehension{
         collection: [1,2,3,4,5],

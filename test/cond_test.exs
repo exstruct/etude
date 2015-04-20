@@ -1,7 +1,7 @@
-defmodule ExprTest.Cond do
-  use ExprTestHelper
+defmodule EtudeTest.Cond do
+  use EtudeTestHelper
 
-  exprtest "should render a no-armed cond", [
+  etudetest "should render a no-armed cond", [
     render: [
       %Cond{
         expression: %Call{
@@ -12,7 +12,7 @@ defmodule ExprTest.Cond do
     ]
   ], :undefined
 
-  exprtest "should render a one-armed cond (truthy)", [
+  etudetest "should render a one-armed cond (truthy)", [
     render: [
       %Cond{
         expression: %Call{
@@ -26,7 +26,7 @@ defmodule ExprTest.Cond do
     ]
   ], :foo
 
-  exprtest "should render a one-armed cond (falsy)", [
+  etudetest "should render a one-armed cond (falsy)", [
     render: [
       %Cond{
         expression: %Call{
@@ -40,7 +40,7 @@ defmodule ExprTest.Cond do
     ]
   ], :undefined
 
-  exprtest "should render a two-armed cond (truthy)", [
+  etudetest "should render a two-armed cond (truthy)", [
     render: [
       %Cond{
         expression: %Call{
@@ -55,7 +55,7 @@ defmodule ExprTest.Cond do
     ]
   ], :foo
 
-  exprtest "should render a two-armed cond (falsy)", [
+  etudetest "should render a two-armed cond (falsy)", [
     render: [
       %Cond{
         expression: %Call{
