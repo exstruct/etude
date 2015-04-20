@@ -28,6 +28,12 @@ defmodule EtudeTest.QC do
     end
   end
 
+  def larger(domain, factor \\ 2) do
+    sized fn(size) ->
+      resize(:random.uniform(size * factor), domain)
+    end
+  end
+
   def map(key_domain, value_domain) do
     bind list({key_domain, value_domain}), fn(list) ->
       :maps.from_list(list)
@@ -74,7 +80,10 @@ defmodule EtudeTest.QC do
 
   def etude_assign do
     assign = exq_struct %Assign{
-      name: atom,
+      ## pick a variable that hasn't been assigned yet
+      name: suchthat(larger(atom, 20), fn(val) ->
+        !EtudeTest.QC.Helper.exists_var(val)
+      end),
       expression: delay(etude_expression),
       line: pos_integer
     }
@@ -88,7 +97,7 @@ defmodule EtudeTest.QC do
     exq_struct %Call{
       module: atom,
       function: atom,
-      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)))],
+      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)), 4)],
       line: pos_integer
     }
   end
@@ -114,16 +123,10 @@ defmodule EtudeTest.QC do
 
   def etude_expression do
     frequency [
-      {50, oneof [
-        etude_literal
-      ]},
-      {10, oneof [
-        etude_cond,
-        etude_call
-      ]},
-      {2, oneof [
-        etude_var
-      ]}
+      {30, etude_literal},
+      {15, etude_cond},
+      {20, etude_call},
+      {2, etude_var}
     ]
   end
 
@@ -172,21 +175,27 @@ defmodule EtudeTest.QC do
       EtudeTest.QC.Helper.start_link
       for_all ast in etude_oplist do
         main = :render
-        IO.puts "\n\n==========================="
-        IO.puts "===== compile:begin"
+        Logger.info "================================================================"
+        Logger.info "===== compile:begin"
         mod = create_module(ast, main)
-        IO.puts "===== compile:end #{mod}"
+        Logger.info "===== compile:end #{mod}"
         ref = :erlang.make_ref
         state = :STATE
-        IO.puts "===== render:begin"
+        Logger.info "===== render:begin"
         {time, {out1, state1}} = :timer.tc(mod, main, [state, &resolve/7, ref])
-        IO.puts "===== render:end #{time}"
-        # TODO report timings and metrics
-        {out2, state2} = apply(mod, main, [state, &resolve/7, ref])
+        Logger.info "===== render:end #{format_microseconds(time)}"
+
+        Logger.info "===== render:cache:begin"
+        {cachetime, {out2, state2}} = :timer.tc(mod, main, [state, &resolve/7, ref])
+        Logger.info "===== render:cache:end #{format_microseconds(cachetime)}"
         state1 == state and state2 == state and
           out1 == out2
       end
     end
+  end
+
+  defp format_microseconds(time) do
+    "#{(time / 1000)}ms"
   end
 
   def resolve(mod, fun, [true, time | args], _state, parent, ref, _attrs) do
