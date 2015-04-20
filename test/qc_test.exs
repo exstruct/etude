@@ -1,3 +1,6 @@
+## there's gotta be a better way
+Code.eval_file("./test/qc_test_helper.exs")
+
 defmodule ExprTest.QC do
   use ExUnit.Case, async: false
   use ExCheck
@@ -19,9 +22,15 @@ defmodule ExprTest.QC do
     end
   end
 
-  def smaller(domain) do
+  def smaller(domain, factor \\ 4) do
     sized fn(size) ->
-      resize(:random.uniform((div(size, 2))+1), domain)
+      resize(:random.uniform((div(size, factor))+1), domain)
+    end
+  end
+
+  def map(key_domain, value_domain) do
+    bind list({key_domain, value_domain}), fn(list) ->
+      :maps.from_list(list)
     end
   end
 
@@ -34,6 +43,7 @@ defmodule ExprTest.QC do
       end)
       {self, struct(name, args)}
     end, fn(self, val) ->
+      ## TODO
       {self, val}
     end)
   end
@@ -55,9 +65,23 @@ defmodule ExprTest.QC do
   def expr_literal(k) do
     frequency [
       {40, expr_literal(0)},
-      {3, list(smaller(delay(expr_literal)))},
-      {2, tuple(smaller(delay(expr_literal)))}
+      {3, list(smaller(delay(expr_expression)))},
+      {3, map(smaller(delay(expr_expression)),
+              smaller(delay(expr_expression)))},
+      {2, tuple(smaller(delay(expr_expression)))}
     ]
+  end
+
+  def expr_assign do
+    assign = exq_struct %Assign{
+      name: atom,
+      expression: delay(expr_expression),
+      line: pos_integer
+    }
+    bind assign, fn(var) ->
+      ExprTest.QC.Helper.put_var(var.name)
+      var
+    end
   end
 
   def expr_call do
@@ -71,20 +95,20 @@ defmodule ExprTest.QC do
 
   def expr_cond do
     exq_struct %Cond{
-      expression: delay(expr_expression),
+      expression: smaller(delay(expr_expression)),
       arms: delay(oneof [
         [],
-        [expr_expression],
-        [expr_expression, expr_expression]
+        [smaller(expr_expression)],
+        [smaller(expr_expression), smaller(expr_expression)]
       ]),
       line: pos_integer
     }
   end
 
+  ## TODO
   def expr_comprehension do
     exq_struct %Comprehension{
       expression: delay(list(expr_expression))
-      ## TODO
     }
   end
 
@@ -96,18 +120,57 @@ defmodule ExprTest.QC do
       {10, oneof [
         expr_cond,
         expr_call
+      ]},
+      {2, oneof [
+        expr_var
       ]}
     ]
   end
 
-  def expr_render do
-    expr_expression
+  def expr_oplist do
+    domain(:expr_oplist, fn(self, size) ->
+      ExprTest.QC.Helper.reset
+      {_, vars} = pick(expr_varlist, size)
+      {_, main} = pick(expr_expression, size)
+      {self, vars ++ [main]}
+    end, fn(self, val) ->
+      ## TODO
+      {self, val}
+    end)
+  end
+
+  def expr_var do
+    domain(:expr_varname, fn(self, size) ->
+      case ExprTest.QC.Helper.get_vars do
+        [] ->
+          {_, var} = pick(expr_literal, size)
+          {self, var}
+        vars ->
+          {_, var} = pick(expr_varstruct(oneof(vars)), size)
+          {self, var}
+      end
+    end, fn(self, val) ->
+      ## TODO
+      {self, val}
+    end)
+  end
+
+  def expr_varlist do
+    smaller(list(smaller(expr_assign, 10)))
+  end
+
+  def expr_varstruct(name) do
+    exq_struct %Var{
+      name: name,
+      line: pos_integer
+    }
   end
 
   if Mix.env == :test do
     @tag timeout: :infinity
     property :expr do
-      for_all ast in expr_render do
+      ExprTest.QC.Helper.start_link
+      for_all ast in expr_oplist do
         main = :render
         mod = create_module(ast, main)
         ref = :erlang.make_ref
