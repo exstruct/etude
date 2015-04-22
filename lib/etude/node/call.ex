@@ -16,12 +16,10 @@ defmodule Etude.Node.Call do
 
     def compile(node, opts) do
       name = Etude.Node.name(node, opts)
-      mod = node.module
-      fun = node.function
       arguments = node.arguments
       exec = "#{name}_exec" |> String.to_atom
-      attrs = Macro.escape(node.attrs)
-      args = Macro.var(:args, nil)
+
+      native = Etude.Utils.get_bin_or_atom(node.attrs, :native, false)
 
       quote line: node.line do
         ## after running some benchmarks inlining doesn't help much here
@@ -46,7 +44,49 @@ defmodule Etude.Node.Call do
           end
         end
 
-        defp unquote(exec)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
+        unquote(compile_exec(exec, native, node, opts))
+        defp unquote(exec)(unquote_splicing(Children.wildcard(arguments, opts)), unquote_splicing(op_args)) do
+          nil
+        end
+
+        unquote_splicing(Children.compile(arguments, opts))
+      end
+    end
+
+    defp compile_exec(name, true, node, opts) do
+      mod = node.module
+      fun = node.function
+      arguments = node.arguments
+      args = Macro.var(:args, nil)
+
+      quote do
+        defp unquote(name)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
+          unquote(args) = unquote(Children.vars(arguments, opts))
+          id = unquote(Etude.Node.Call.compile_id_hash(mod, fun, arguments))
+          case Etude.Memoize.get(id, scope: :call) do
+            :undefined ->
+              Logger.debug(fn ->
+                unquote("calling #{mod}.#{fun}(") <>
+                  (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"
+              end)
+              val = unquote(mod).unquote(fun)(unquote_splicing(Children.vars(arguments, opts)))
+              {{unquote(Etude.Utils.ready), val}, unquote(state)}
+            val ->
+              {val, unquote(state)}
+          end
+        end
+      end
+    end
+
+    defp compile_exec(name, _native, node, opts) do
+      mod = node.module
+      fun = node.function
+      arguments = node.arguments
+      attrs = Macro.escape(node.attrs)
+      args = Macro.var(:args, nil)
+
+      quote do
+        defp unquote(name)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
           unquote(args) = unquote(Children.vars(arguments, opts))
           id = unquote(Etude.Node.Call.compile_id_hash(mod, fun, arguments))
           case Etude.Memoize.get(id, scope: :call) do
@@ -82,11 +122,6 @@ defmodule Etude.Node.Call do
               {val, unquote(state)}
           end
         end
-        defp unquote(exec)(unquote_splicing(Children.wildcard(arguments, opts)), unquote_splicing(op_args)) do
-          nil
-        end
-
-        unquote_splicing(Children.compile(arguments, opts))
       end
     end
   end
@@ -96,7 +131,7 @@ defmodule Etude.Node.Call do
   end
   def compile_id_hash(mod, fun, _) do
     quote do
-      :erlang.phash2({unquote(mod), unquote(fun), unquote({:args, [], nil})})
+      :erlang.phash2({unquote(mod), unquote(fun), unquote(Macro.var(:args, nil))})
     end
   end
 end
