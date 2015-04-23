@@ -23,7 +23,7 @@ defmodule Etude do
 
   def compile(name, children, opts \\ []) do
     %Template{name: name,
-              children: transform_children(children)}
+              children: transform_children(children, opts)}
     |> Template.compile(opts)
   end
 
