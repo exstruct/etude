@@ -22,7 +22,7 @@ defmodule Etude.Node.Assign do
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         defp unquote(name)(unquote_splicing(op_args)) do
           Etude.Memoize.wrap unquote(name) do
-            Logger.debug(unquote("#{name} assigned from #{Etude.Node.name(expression, opts)}"))
+            Logger.debug("#{__MODULE__} :: " <> unquote("#{name} assigned from #{Etude.Node.name(expression, opts)}"))
             unquote(Etude.Node.assign(expression, opts))
             {unquote(Etude.Node.var(expression, opts)), unquote(state)}
           end

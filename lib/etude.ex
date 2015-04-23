@@ -22,8 +22,13 @@ defmodule Etude do
   end
 
   def compile(name, children, opts \\ []) do
-    template = %Template{name: name,
-                         children: children}
-    Template.compile(template, opts)
+    %Template{name: name,
+              children: transform_children(children)}
+    |> Template.compile(opts)
+  end
+
+  defp transform_children(children, opts) do
+    children
+    |> Etude.Passes.SideEffects.transform(opts)
   end
 end

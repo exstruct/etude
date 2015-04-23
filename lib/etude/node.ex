@@ -30,6 +30,12 @@ end
 defimpl Etude.Node, for: Any do
   import Etude.Vars
 
+  def name(node, opts) when is_map(node) do
+    id = node
+    |> Map.to_list
+    |> List.keysort(0)
+    name(id, opts)
+  end
   def name(node, opts) do
     prefix = Keyword.get(opts, :prefix)
     "#{prefix}_#{:erlang.phash2(node)}"

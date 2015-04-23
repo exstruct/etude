@@ -18,7 +18,7 @@ defmodule Etude.Node.Var do
         @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
         @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
         defp unquote(name)(unquote_splicing(op_args)) do
-          Logger.debug(unquote("#{name} resolving var from #{target}"))
+          Logger.debug("#{__MODULE__} :: " <> unquote("#{name} resolving var from #{target}"))
           unquote(target)(unquote_splicing(op_args))
         end
       end

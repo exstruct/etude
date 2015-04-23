@@ -21,10 +21,10 @@ defmodule Etude.Node.Collection do
           ## construction
           case unquote(exec)(unquote_splicing(Children.vars(node, opts))) do
             nil ->
-              Logger.debug(unquote("#{name} deps_pending"))
+              Logger.debug("#{__MODULE__} :: " <> unquote("#{name} deps_pending"))
               {nil, unquote(state)}
             val ->
-              Logger.debug(fn -> unquote("#{name} result -> ") <> inspect(elem(val, 1)) end)
+              Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} result -> ") <> inspect(elem(val, 1)) end)
               {val, unquote(state)}
           end
         end

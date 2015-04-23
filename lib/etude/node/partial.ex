@@ -31,10 +31,10 @@ defmodule Etude.Node.Partial do
             ## exec
             case unquote(mod).unquote(fun)(unquote_splicing(op_args), unquote(Children.vars(children, opts))) do
               nil ->
-                Logger.debug(unquote("#{name} partial_pending"))
+                Logger.debug("#{__MODULE__} :: " <> unquote("#{name} partial_pending"))
                 {nil, unquote(state)}
               {val, state} ->
-                Logger.debug(fn -> unquote("#{name} partial result -> ") <> inspect(elem(val, 1)) end)
+                Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} partial result -> ") <> inspect(elem(val, 1)) end)
                 {val, state}
             end
           end
@@ -46,15 +46,16 @@ defmodule Etude.Node.Partial do
           ## create a new scope
           unquote(child_scope(:args, __MODULE__))
           Logger.debug(fn ->
+            "#{__MODULE__} :: " <>
             unquote("#{name} partial ") <> to_string(unquote(mod)) <> unquote(".#{fun}(") <>
               (Enum.map(args, &inspect/1) |> Enum.join(", ")) <> ")"
           end)
           case unquote(mod).unquote(fun)(unquote_splicing(op_args), args) do
             nil ->
-              Logger.debug(unquote("#{name} partial_pending"))
+              Logger.debug("#{__MODULE__} :: " <> unquote("#{name} partial_pending"))
               {nil, unquote(state)}
             {val, state} ->
-              Logger.debug(fn -> unquote("#{name} partial result -> ") <> inspect(elem(val, 1)) end)
+              Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} partial result -> ") <> inspect(elem(val, 1)) end)
               {val, state}
           end
         end

@@ -32,13 +32,13 @@ defmodule Etude.Node.Call do
             ## exec
             case unquote(exec)(unquote_splicing(Children.vars(arguments, opts)), unquote_splicing(op_args)) do
               nil ->
-                Logger.debug(unquote("#{name} deps pending"))
+                Logger.debug("#{__MODULE__} :: " <> unquote("#{name} deps pending"))
                 {nil, unquote(state)}
               :pending ->
-                Logger.debug(unquote("#{name} call pending"))
+                Logger.debug("#{__MODULE__} :: " <> unquote("#{name} call pending"))
                 {nil, unquote(state)}
               {val, state} ->
-                Logger.debug(fn -> unquote("#{name} result -> ") <> inspect(elem(val, 1)) end)
+                Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} result -> ") <> inspect(elem(val, 1)) end)
                 {val, state}
             end
           end
@@ -66,6 +66,7 @@ defmodule Etude.Node.Call do
           case Etude.Memoize.get(id, scope: :call) do
             :undefined ->
               Logger.debug(fn ->
+                "#{__MODULE__} :: " <>
                 unquote("calling #{mod}.#{fun}(") <>
                   (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"
               end)
@@ -92,6 +93,7 @@ defmodule Etude.Node.Call do
           case Etude.Memoize.get(id, scope: :call) do
             :undefined ->
               Logger.debug(fn ->
+                "#{__MODULE__} :: " <>
                 unquote("calling #{mod}.#{fun}(") <>
                   (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"
               end)

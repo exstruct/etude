@@ -44,20 +44,20 @@ defmodule Etude.Node.Comprehension do
 
         @compile {:inline, [{unquote(exec), unquote(1 + length(op_args))}]}
         defp unquote(exec)({unquote(Utils.ready), :undefined}, unquote_splicing(op_args)) do
-          Logger.debug(unquote("#{name} undefined"))
+          Logger.debug("#{__MODULE__} :: " <> unquote("#{name} undefined"))
           {{unquote(Utils.ready), :undefined}, unquote(state)}
         end
         defp unquote(exec)({unquote(Utils.ready), unquote(coll)}, unquote_splicing(op_args)) when unquote(coll) in [false, nil] do
-          Logger.debug(unquote("#{name} empty"))
+          Logger.debug("#{__MODULE__} :: " <> unquote("#{name} empty"))
           {unquote(get_default(node)), unquote(state)}
         end
         defp unquote(exec)({unquote(Utils.ready), unquote(coll)}, unquote_splicing(op_args)) do
           case unquote(reduce(node, opts)) do
             {nil, state} ->
-              Logger.debug(unquote("#{name} pending"))
+              Logger.debug("#{__MODULE__} :: " <> unquote("#{name} pending"))
               {nil, state}
             {val, state} ->
-              Logger.debug(fn -> unquote("#{name} result -> ") <> inspect(val) end)
+              Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} result -> ") <> inspect(val) end)
               {{unquote(Utils.ready), val}, state}
           end
         end

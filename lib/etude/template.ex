@@ -31,12 +31,12 @@ defmodule Etude.Template do
       require Etude.Memoize
 
       def unquote(name)(state, resolve, req \\ :erlang.make_ref()) do
-        Logger.debug(unquote("#{name} init"))
+        Logger.debug("#{__MODULE__} :: " <> unquote("#{name} init"))
         unquote(loop)(0, state, resolve, req, 0)
       end
 
       def unquote(partial)(unquote_splicing(op_args), args) do
-        Logger.debug(unquote("#{name} partial"))
+        Logger.debug("#{__MODULE__} :: " <> unquote("#{name} partial"))
         Etude.Memoize.put({unquote(name), :__ARGS__}, args)
         case unquote(root) do
           {{unquote(ready), _} = val, state} ->
@@ -49,7 +49,7 @@ defmodule Etude.Template do
       end
 
       defp unquote(loop)(count, unquote_splicing(op_args)) do
-        Logger.debug(fn -> unquote("#{name} loop (") <> to_string(count) <> ")" end)
+        Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} loop (") <> to_string(count) <> ")" end)
         case unquote(root) do
           {{unquote(ready), val}, state} ->
             {val, state}
@@ -61,14 +61,14 @@ defmodule Etude.Template do
       end
 
       defp unquote(wait)(count, unquote_splicing(op_args)) do
-        Logger.debug(fn -> unquote("#{name} wait (") <> to_string(count) <> ")" end)
+        Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} wait (") <> to_string(count) <> ")" end)
         unquote(wait_block(immediate, timeout, line, quote do
           {:error, :timeout, unquote(state)}
         end))
       end
 
       defp unquote(immediate)(count, unquote_splicing(op_args)) do
-        Logger.debug(fn -> unquote("#{name} wait[immediate] (") <> to_string(count) <> ")" end)
+        Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} wait[immediate] (") <> to_string(count) <> ")" end)
         unquote(wait_block(immediate, 0, line, quote do
           unquote(loop)(count + 1, unquote_splicing(op_args))
         end))
