@@ -16,9 +16,13 @@ defmodule Etude.Vars do
     [state(context), resolve(context), req(context), scope(context)]
   end
 
-  def child_scope(name, context \\ nil) do
+  def child_scope(name, context \\ nil)
+  def child_scope(name, context) when is_atom(name) do
+    child_scope(Macro.var(name, context), context)
+  end
+  def child_scope(vars, _context) do
     quote do
-      unquote(scope) = :erlang.phash2({unquote(scope), unquote({name, [], context})})
+      unquote(scope) = :erlang.phash2({unquote(scope), unquote(vars)})
     end
   end
 end

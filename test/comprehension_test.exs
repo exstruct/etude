@@ -37,4 +37,19 @@ defmodule EtudeTest.Comprehension do
       }
     ]
   ], [{0,1},{1,2},{2,3},{3,4},{4,5}]
+
+  etudetest "should render a key-value map comprehension", [
+    render: [
+      %Comprehension{
+        collection: %{"foo" => "bar", "baz" => "bang"},
+        expression: {
+          %Var{name: :value},
+          %Var{name: :key}
+        },
+        key: %Assign{name: :key},
+        value: %Assign{name: :value},
+        type: :map
+      }
+    ]
+  ], %{"bar" => "foo", "bang" => "baz"}
 end

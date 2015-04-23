@@ -72,17 +72,32 @@ defmodule Etude.Node.Comprehension do
     defp reduce(node, opts) do
       expression = node.expression
       quote do
-        ## TODO type check the collection to see if it's key, value
         {_, acc, state} = Enum.reduce(unquote(coll), {0, [], unquote(state)}, fn
           ## something didn't finish but we're going to play the rest out
+          ({unquote(i), unquote(item)}, {index, nil, unquote(state)}) ->
+            unquote(create_child_scope(node))
+            unquote(assign_vars(node, opts))
+            unquote(Etude.Node.assign(expression, opts))
+            {index + 1, nil, unquote(state)}
           (unquote(item), {unquote(i), nil, unquote(state)}) ->
-            unquote(child_scope(:item))
+            unquote(create_child_scope(node))
             unquote(assign_vars(node, opts))
             unquote(Etude.Node.assign(expression, opts))
             {unquote(i) + 1, nil, unquote(state)}
+
+          ({unquote(i), unquote(item)}, {index, acc, unquote(state)}) ->
+            unquote(create_child_scope(node))
+            unquote(assign_vars(node, opts))
+            unquote(Etude.Node.assign(expression, opts))
+            case unquote(Etude.Node.var(expression, opts)) do
+              nil ->
+                {index + 1, nil, unquote(state)}
+              {unquote(Utils.ready), val} ->
+                {index + 1, [val | acc], unquote(state)}
+            end
           (unquote(item), {unquote(i), acc, unquote(state)}) ->
             ## create a new scope based on the item's value
-            unquote(child_scope(:item))
+            unquote(create_child_scope(node))
 
             ## assign iterator variables to the scope
             unquote(assign_vars(node, opts))
@@ -100,6 +115,19 @@ defmodule Etude.Node.Comprehension do
         unquote(convert_to_type(node))
         {acc, state}
       end
+    end
+
+    def create_child_scope(%Comprehension{key: nil, value: nil}) do
+      nil
+    end
+    def create_child_scope(%Comprehension{key: nil, value: _}) do
+      child_scope(item)
+    end
+    def create_child_scope(%Comprehension{key: _, value: nil}) do
+      child_scope(i)
+    end
+    def create_child_scope(_) do
+      child_scope([item, i])
     end
 
     defp assign_vars(%Comprehension{key: nil, value: nil}, _) do
