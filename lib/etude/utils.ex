@@ -21,6 +21,7 @@ defmodule Etude.Utils do
 
   defp maybe_memoize(name, _opts, block, true) do
     """
+      ?DEBUG(<<"#{name} cache check">>),
       case ?MEMO_GET(#{req}, #{name}, #{scope}) of
         undefined ->
           MEMO_RES = begin
@@ -43,18 +44,15 @@ defmodule Etude.Utils do
     indent(block, 1) <> "."
   end
 
-  def file_line(_, _) do
+  def file_line(%{:line => nil} = node, opts) do
     ""
   end
-  # def file_line(%{:line => nil} = node, opts) do
-  #   ""
-  # end
-  # def file_line(%{:__struct__ => _} = node, opts) do
-  #   "-file(\"#{opts[:file]}\", #{node.line || 1})."
-  # end
-  # def file_line(_, opts) do
-  #   "-file(\"#{opts[:file]}\", 1)."
-  # end
+  def file_line(%{:__struct__ => _} = node, opts) do
+    "-file(\"#{opts[:file]}\", #{node.line || 1})."
+  end
+  def file_line(_, opts) do
+    "-file(\"#{opts[:file]}\", 1)."
+  end
 
   def indent(block, indentations \\ 1) do
     block

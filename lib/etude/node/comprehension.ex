@@ -33,9 +33,9 @@ defmodule Etude.Node.Comprehension do
       defop node, opts, [:memoize], """
       #{Children.call([collection], opts)},
       case #{exec}(#{Children.vars([collection], opts, ", ")}#{op_args}) of
-        nil ->
-          ?DEBUG(<<"#{name} collection pending">>),
-          {nil, #{state}};
+        {nil, PendingState} ->
+          ?DEBUG(<<"#{name} comprehension pending">>),
+          {nil, PendingState};
         CollRes ->
           #{debug_res(name, "element(1, CollRes)", "comprehension")},
           CollRes
@@ -52,18 +52,20 @@ defmodule Etude.Node.Comprehension do
       #{name}({#{ready}, false}, #{op_args}) ->
         {{#{ready}, #{get_default(node)}}, #{state}};
       #{name}({#{ready}, Collection}, #{op_args("InitialState")}) ->
+        ?DEBUG([<<"#{name} comprehension in ">>, ?INSPECT(Collection)]),
         case 'Elixir.Enum':reduce(Collection, {0, [], InitialState}, fun
       #{indent(reduce_clauses(node, opts), 2)}
         end) of
           {_, nil, NilState} ->
             {nil, NilState};
           {_, Val, ValState} ->
+            ?DEBUG([<<"#{name} comprehension out ">>, ?INSPECT(Val)]),
             Reversed = lists:reverse(Val),
       #{indent(convert_to_type(node, "Reversed"), 3)},
             {{#{ready}, Reversed}, ValState}
         end;
       #{name}(_, #{op_args}) ->
-        nil.
+        {nil, #{state}}.
       """
     end
 

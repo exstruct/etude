@@ -26,6 +26,7 @@ defmodule Etude.Mixfile do
 
   defp deps do
     [{:rebind, github: "camshaft/rebind"},
+     {:lineo, "~> 0.0.1"},
      # hex isn't downloading the rebind dependencies for some reason...
      {:parse_trans, github: "uwiger/parse_trans"},
      {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},

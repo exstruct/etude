@@ -7,7 +7,6 @@ defmodule EtudeTest.QC do
   use Etude
   alias Etude.Node.Assign
   alias Etude.Node.Call
-  alias Etude.Node.Collection
   alias Etude.Node.Comprehension
   alias Etude.Node.Cond
   alias Etude.Node.Partial
@@ -84,7 +83,8 @@ defmodule EtudeTest.QC do
       name: suchthat(larger(atom, 8), fn(val) ->
         !EtudeTest.QC.Helper.exists_var(val)
       end),
-      expression: delay(etude_expression)
+      expression: delay(etude_expression),
+      line: 1
     }
     bind assign, fn(var) ->
       EtudeTest.QC.Helper.put_var(var.name)
@@ -96,7 +96,8 @@ defmodule EtudeTest.QC do
     exq_struct %Call{
       module: atom,
       function: atom,
-      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)), 4)]
+      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)), 4)],
+      line: 1
     }
   end
 
@@ -108,7 +109,8 @@ defmodule EtudeTest.QC do
         [smaller(etude_expression)],
         [nil, smaller(etude_expression)],
         [smaller(etude_expression), smaller(etude_expression)]
-      ])
+      ]),
+      line: 1
     }
   end
 
@@ -117,7 +119,8 @@ defmodule EtudeTest.QC do
       collection: smaller(delay(list(etude_expression))),
       key: oneof([etude_assign, nil]),
       value: oneof([etude_assign, nil]),
-      expression: smaller(delay(etude_expression))
+      expression: smaller(delay(etude_expression)),
+      line: 1
     }
     bind comp, fn(info) ->
       if info.key, do:
@@ -133,7 +136,7 @@ defmodule EtudeTest.QC do
       {30, etude_literal},
       {15, etude_cond},
       {20, etude_call},
-      {10, smaller(etude_comprehension)},
+      {5, smaller(etude_comprehension, 3)},
       {2, etude_var}
     ]
   end
@@ -175,7 +178,8 @@ defmodule EtudeTest.QC do
 
   def etude_varstruct(name) do
     exq_struct %Var{
-      name: name
+      name: name,
+      line: 1
     }
   end
 

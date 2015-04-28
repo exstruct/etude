@@ -39,6 +39,7 @@ defmodule Etude.Template do
     -compile(native).
     -compile({hipe, [o3]}).
     -compile({parse_transform, rebind}).
+    -compile({parse_transform, lineo}).
 
     %% TODO expose as an option
     %-define(DEBUG(Str), io:put_chars([<<"DEBUG | ">>, ?FILE, <<":">>, integer_to_list(?LINE), <<" :: ">>, Str, <<"\\n">>])).
