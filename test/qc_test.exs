@@ -1,4 +1,4 @@
-## there's gotta be a better way
+# there's gotta be a better way
 Code.eval_file("./test/qc_test_helper.exs")
 
 defmodule EtudeTest.QC do
@@ -22,7 +22,7 @@ defmodule EtudeTest.QC do
     end
   end
 
-  def smaller(domain, factor \\ 8) do
+  def smaller(domain, factor \\ 2) do
     sized fn(size) ->
       resize(:random.uniform((div(size, factor))+1), domain)
     end
@@ -72,7 +72,7 @@ defmodule EtudeTest.QC do
     frequency [
       {40, etude_literal(0)},
       {3, list(smaller(delay(etude_expression)))},
-      {3, map(smaller(delay(etude_expression), 12),
+      {3, map(smaller(delay(etude_expression), 8),
               smaller(delay(etude_expression)))},
       {2, tuple(smaller(delay(etude_expression)))}
     ]
@@ -81,11 +81,10 @@ defmodule EtudeTest.QC do
   def etude_assign do
     assign = exq_struct %Assign{
       ## pick a variable that hasn't been assigned yet
-      name: suchthat(larger(atom, 20), fn(val) ->
+      name: suchthat(larger(atom, 8), fn(val) ->
         !EtudeTest.QC.Helper.exists_var(val)
       end),
-      expression: delay(etude_expression),
-      line: pos_integer
+      expression: delay(etude_expression)
     }
     bind assign, fn(var) ->
       EtudeTest.QC.Helper.put_var(var.name)
@@ -97,8 +96,7 @@ defmodule EtudeTest.QC do
     exq_struct %Call{
       module: atom,
       function: atom,
-      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)), 4)],
-      line: pos_integer
+      arguments: [bool(), int(0, 100) | smaller(list(delay(etude_expression)), 4)]
     }
   end
 
@@ -108,17 +106,26 @@ defmodule EtudeTest.QC do
       arms: delay(oneof [
         [],
         [smaller(etude_expression)],
+        [nil, smaller(etude_expression)],
         [smaller(etude_expression), smaller(etude_expression)]
-      ]),
-      line: pos_integer
+      ])
     }
   end
 
-  ## TODO
   def etude_comprehension do
-    exq_struct %Comprehension{
-      expression: delay(list(etude_expression))
+    comp = exq_struct %Comprehension{
+      collection: smaller(delay(list(etude_expression))),
+      key: oneof([etude_assign, nil]),
+      value: oneof([etude_assign, nil]),
+      expression: smaller(delay(etude_expression))
     }
+    bind comp, fn(info) ->
+      if info.key, do:
+        EtudeTest.QC.Helper.delete_var(info.key.name)
+      if info.value, do:
+        EtudeTest.QC.Helper.delete_var(info.value.name)
+      info
+    end
   end
 
   def etude_expression do
@@ -126,6 +133,7 @@ defmodule EtudeTest.QC do
       {30, etude_literal},
       {15, etude_cond},
       {20, etude_call},
+      {10, smaller(etude_comprehension)},
       {2, etude_var}
     ]
   end
@@ -167,8 +175,7 @@ defmodule EtudeTest.QC do
 
   def etude_varstruct(name) do
     exq_struct %Var{
-      name: name,
-      line: pos_integer
+      name: name
     }
   end
 
@@ -178,19 +185,19 @@ defmodule EtudeTest.QC do
       EtudeTest.QC.Helper.start_link
       for_all ast in etude_oplist do
         main = :render
-        Logger.info "================================================================"
-        Logger.info "===== compile:begin"
+        IO.puts "================================================================"
+        IO.puts "===== compile:begin"
         mod = create_module(ast, main)
-        Logger.info "===== compile:end #{mod}"
+        IO.puts "===== compile:end #{mod}"
         ref = :erlang.make_ref
         state = :STATE
-        Logger.info "===== render:begin"
+        IO.puts "===== render:begin"
         {time, {out1, state1}} = :timer.tc(mod, main, [state, &resolve/7, ref])
-        Logger.info "===== render:end #{format_microseconds(time)}"
+        IO.puts "===== render:end #{format_microseconds(time)}"
 
-        Logger.info "===== render:cache:begin"
+        IO.puts "===== render:cache:begin"
         {cachetime, {out2, state2}} = :timer.tc(mod, main, [state, &resolve/7, ref])
-        Logger.info "===== render:cache:end #{format_microseconds(cachetime)}"
+        IO.puts "===== render:cache:end #{format_microseconds(cachetime)}"
         state1 == state and state2 == state and
           out1 == out2
       end

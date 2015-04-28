@@ -25,7 +25,8 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
+    [{:rebind, "~> 0.1.1"},
+     {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:excoveralls, "~> 0.3", only: [:dev, :test]},
      {:benchfella, "~> 0.2.0", only: [:dev, :test, :bench]}]

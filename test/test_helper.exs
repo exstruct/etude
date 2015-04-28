@@ -1,7 +1,7 @@
 defmodule EtudeTestHelper do
   defmacro __using__(_) do
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: false
       use Benchfella
       import EtudeTestHelper
     end
@@ -30,6 +30,7 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Comprehension
         alias Etude.Node.Cond
         alias Etude.Node.Partial
+        alias Etude.Node.Prop
         alias Etude.Node.Var
 
         unquote_splicing do

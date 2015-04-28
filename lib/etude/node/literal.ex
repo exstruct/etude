@@ -1,23 +1,35 @@
+defmodule Etude.Node.Literal.Impl do
+  defmacro __using__(_) do
+    quote do
+      def compile(_literal, _opts) do
+        nil
+      end
+
+      def call(%Etude.Node.Literal{value: value}, opts) do
+        call(value, opts)
+      end
+      def call(value, _opts) do
+        "{#{Etude.Utils.ready}, #{Etude.Utils.escape(value)}}"
+      end
+
+      def assign(node, opts) do
+        "#{Etude.Node.var(node, opts)} = #{Etude.Node.call(node, opts)}"
+      end
+
+      def prop(node, opts) do
+        call(node, opts)
+      end
+    end
+  end
+end
+
 defmodule Etude.Node.Literal do
-  defstruct line: 1,
+  defstruct line: nil,
             value: nil
 
   defimpl Etude.Node, for: Etude.Node.Literal do
     defdelegate name(node, opts), to: Etude.Node.Any
-    defdelegate var(node, context), to: Etude.Node.Any
-
-    def compile(_literal, _opts) do
-      []
-    end
-
-    def call(node, _) do
-      Macro.escape({Etude.Utils.ready, node.value})
-    end
-
-    def assign(node, context) do
-      quote do
-        unquote(Etude.Node.var(node)) = unquote(Etude.Node.call(node, context))
-      end
-    end
+    defdelegate var(node, opts), to: Etude.Node.Any
+    use Etude.Node.Literal.Impl
   end
 end

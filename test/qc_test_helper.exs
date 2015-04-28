@@ -17,6 +17,12 @@ defmodule EtudeTest.QC.Helper do
     end)
   end
 
+  def delete_var(name) do
+    Agent.update(__MODULE__, fn {vars} ->
+      {Set.delete(vars, name)}
+    end)
+  end
+
   def exists_var(name) do
     Agent.get(__MODULE__, fn {vars} ->
       Set.member?(vars, name)

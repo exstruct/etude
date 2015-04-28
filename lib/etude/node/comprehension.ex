@@ -6,14 +6,15 @@ defmodule Etude.Node.Comprehension do
             type: :list,
             line: 1
 
-  defimpl Etude.Node, for: Etude.Node.Comprehension do
-    alias Etude.Children
-    alias Etude.Utils
-    alias Etude.Node.Comprehension
-    import Etude.Vars
+  alias Etude.Children
+  alias Etude.Node.Comprehension
+  import Etude.Vars
+  import Etude.Utils
 
+  defimpl Etude.Node, for: Etude.Node.Comprehension do
     defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
 
@@ -29,148 +30,129 @@ defmodule Etude.Node.Comprehension do
         node.value
       ]
 
-      quote line: node.line do
-        @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
-        @compile {:inline, [{unquote(name), unquote(length(op_args))}]}
-        defp unquote(name)(unquote_splicing(op_args)) do
-          Etude.Memoize.wrap unquote(name) do
-            ## dependencies
-            unquote(Etude.Node.assign(collection, opts))
-
-            ## exec
-            unquote(exec)(unquote(Etude.Node.var(collection, opts)), unquote_splicing(op_args))
-          end
-        end
-
-        @compile {:inline, [{unquote(exec), unquote(1 + length(op_args))}]}
-        defp unquote(exec)({unquote(Utils.ready), :undefined}, unquote_splicing(op_args)) do
-          Logger.debug("#{__MODULE__} :: " <> unquote("#{name} undefined"))
-          {{unquote(Utils.ready), :undefined}, unquote(state)}
-        end
-        defp unquote(exec)({unquote(Utils.ready), unquote(coll)}, unquote_splicing(op_args)) when unquote(coll) in [false, nil] do
-          Logger.debug("#{__MODULE__} :: " <> unquote("#{name} empty"))
-          {unquote(get_default(node)), unquote(state)}
-        end
-        defp unquote(exec)({unquote(Utils.ready), unquote(coll)}, unquote_splicing(op_args)) do
-          case unquote(reduce(node, opts)) do
-            {nil, state} ->
-              Logger.debug("#{__MODULE__} :: " <> unquote("#{name} pending"))
-              {nil, state}
-            {val, state} ->
-              Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} result -> ") <> inspect(val) end)
-              {{unquote(Utils.ready), val}, state}
-          end
-        end
-        defp unquote(exec)(_, unquote_splicing(op_args)) do
-          {nil, unquote(state)}
-        end
-
-        unquote_splicing(Children.compile(children, opts))
+      defop node, opts, [:memoize], """
+      #{Children.call([collection], opts)},
+      case #{exec}(#{Children.vars([collection], opts, ", ")}#{op_args}) of
+        nil ->
+          ?DEBUG(<<"#{name} collection pending">>),
+          {nil, #{state}};
+        CollRes ->
+          #{debug_res(name, "element(1, CollRes)", "comprehension")},
+          CollRes
       end
+      """, Dict.put(Children.compile(children, opts), exec, compile_exec(exec, node, opts))
     end
 
-    defp reduce(node, opts) do
-      expression = node.expression
-      quote do
-        {_, acc, state} = Enum.reduce(unquote(coll), {0, [], unquote(state)}, fn
-          ## something didn't finish but we're going to play the rest out
-          ({unquote(i), unquote(item)}, {index, nil, unquote(state)}) ->
-            unquote(create_child_scope(node))
-            unquote(assign_vars(node, opts))
-            unquote(Etude.Node.assign(expression, opts))
-            {index + 1, nil, unquote(state)}
-          (unquote(item), {unquote(i), nil, unquote(state)}) ->
-            unquote(create_child_scope(node))
-            unquote(assign_vars(node, opts))
-            unquote(Etude.Node.assign(expression, opts))
-            {unquote(i) + 1, nil, unquote(state)}
+    defp compile_exec(name, node, opts) do
+      """
+      #{name}({#{ready}, undefined}, #{op_args}) ->
+        {{#{ready}, undefined}, #{state}};
+      #{name}({#{ready}, nil}, #{op_args}) ->
+        {{#{ready}, #{get_default(node)}}, #{state}};
+      #{name}({#{ready}, false}, #{op_args}) ->
+        {{#{ready}, #{get_default(node)}}, #{state}};
+      #{name}({#{ready}, Collection}, #{op_args("InitialState")}) ->
+        case 'Elixir.Enum':reduce(Collection, {0, [], InitialState}, fun
+      #{indent(reduce_clauses(node, opts), 2)}
+        end) of
+          {_, nil, NilState} ->
+            {nil, NilState};
+          {_, Val, ValState} ->
+            Reversed = lists:reverse(Val),
+      #{indent(convert_to_type(node, "Reversed"), 3)},
+            {{#{ready}, Reversed}, ValState}
+        end;
+      #{name}(_, #{op_args}) ->
+        nil.
+      """
+    end
 
-          ({unquote(i), unquote(item)}, {index, acc, unquote(state)}) ->
-            unquote(create_child_scope(node))
-            unquote(assign_vars(node, opts))
-            unquote(Etude.Node.assign(expression, opts))
-            case unquote(Etude.Node.var(expression, opts)) do
-              nil ->
-                {index + 1, nil, unquote(state)}
-              {unquote(Utils.ready), val} ->
-                {index + 1, [val | acc], unquote(state)}
-            end
-          (unquote(item), {unquote(i), acc, unquote(state)}) ->
-            ## create a new scope based on the item's value
-            unquote(create_child_scope(node))
+    defp reduce_clauses(node, opts) do
+      """
+      ({_Key, _Item}, {Index, nil, #{state}}) ->
+      #{indent(reduce_nil(node, opts))};
+      (_Item, {_Key = Index, nil, #{state}}) ->
+      #{indent(reduce_nil(node, opts))};
+      ({_Key, _Item}, {Index, Acc, #{state}}) ->
+      #{indent(reduce_acc(node, opts))};
+      (_Item, {_Key = Index, Acc, #{state}}) ->
+      #{indent(reduce_acc(node, opts))}
+      """
+    end
 
-            ## assign iterator variables to the scope
-            unquote(assign_vars(node, opts))
+    defp reduce_nil(node, opts) do
+      expression = Children.call([node.expression], opts)
+      """
+      #{create_child_scope(node)},
+      #{assign_vars(node, opts)},
+      #{expression},
+      {Index + 1, nil, #{state}}
+      """
+    end
 
-            ## dependency
-            unquote(Etude.Node.assign(expression, opts))
-            case unquote(Etude.Node.var(expression, opts)) do
-              nil ->
-                {unquote(i) + 1, nil, unquote(state)}
-              {unquote(Utils.ready), val} ->
-                {unquote(i) + 1, [val | acc], unquote(state)}
-            end
-        end)
-        acc = :lists.reverse(acc)
-        unquote(convert_to_type(node))
-        {acc, state}
+    defp reduce_acc(node, opts) do
+      expression = Children.call([node.expression], opts)
+      var = Etude.Node.var(node.expression, opts)
+      """
+      #{create_child_scope(node)},
+      #{assign_vars(node, opts)},
+      #{expression},
+      case #{var} of
+        nil ->
+          {Index + 1, nil, #{state}};
+        {#{ready}, Val} ->
+          {Index + 1, [Val | Acc], #{state}}
       end
+      """
     end
 
     def create_child_scope(%Comprehension{key: nil, value: nil}) do
-      nil
+      "nil"
     end
     def create_child_scope(%Comprehension{key: nil, value: _}) do
-      child_scope(item)
+      child_scope("_Item")
     end
     def create_child_scope(%Comprehension{key: _, value: nil}) do
-      child_scope(i)
+      child_scope("_Key")
     end
     def create_child_scope(_) do
-      child_scope([item, i])
+      child_scope(["_Item", "_Key"])
     end
 
     defp assign_vars(%Comprehension{key: nil, value: nil}, _) do
-      []
+      "nil"
     end
     defp assign_vars(%Comprehension{key: nil, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
-      [quote do
-        Etude.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
-      end]
+      "?MEMO_PUT(#{req}, #{v}, #{scope}, {#{ready}, _Item})"
     end
     defp assign_vars(%Comprehension{key: key, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
       k = Etude.Node.Assign.resolve(key, opts)
-      quote do
-        Etude.Memoize.put(unquote(k), {unquote(Utils.ready), unquote(i)})
-        Etude.Memoize.put(unquote(v), {unquote(Utils.ready), unquote(item)})
-      end
+      "?MEMO_PUT(#{req}, #{v}, #{scope}, {#{ready}, _Item}),\n?MEMO_PUT(#{req}, #{k}, #{scope}, {#{ready}, _Key})"
     end
 
     defp get_default(%Comprehension{type: :list}) do
-      {Utils.ready, []}
+      "[]"
     end
     defp get_default(%Comprehension{type: :map}) do
-      {Utils.ready, Macro.escape(%{})}
+      "\#{}"
     end
     defp get_default(%Comprehension{type: :tuple}) do
-      {Utils.ready, Macro.escape({})}
+      "{}"
     end
 
-    defp convert_to_type(%Comprehension{type: :list}) do
-      nil
+    defp convert_to_type(%Comprehension{type: :list}, _var) do
+      "nil"
     end
-    defp convert_to_type(%Comprehension{type: type}) do
+    defp convert_to_type(%Comprehension{type: type}, var) do
       {mod, fun} = type_from_list(type)
-      quote do
-        acc = case acc do
-          nil ->
-            nil
-          val ->
-            unquote(mod).unquote(fun)(val)
-        end
+      """
+      rebind(#{var}) = case #{var} of
+        nil -> nil;
+        ConvertedVal -> #{escape(mod)}:#{escape(fun)}(ConvertedVal)
       end
+      """
     end
 
     defp type_from_list(:map) do
@@ -178,20 +160,6 @@ defmodule Etude.Node.Comprehension do
     end
     defp type_from_list(:tuple) do
       {:erlang, :list_to_tuple}
-    end
-    defp type_from_list(type) do
-      ## TODO should we make this a protocol?
-      {type, :from_list}
-    end
-
-    defp item do
-      Macro.var(:item, nil)
-    end
-    defp i do
-      Macro.var(:i, nil)
-    end
-    defp coll do
-      Macro.var(:coll, nil)
     end
   end
 end

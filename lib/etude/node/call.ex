@@ -3,15 +3,17 @@ defmodule Etude.Node.Call do
             function: nil,
             arguments: [],
             attrs: %{},
-            line: 1
+            line: nil
 
   alias Etude.Children
   import Etude.Vars
+  import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Call do
     defdelegate name(node, opts), to: Etude.Node.Any
     defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 
     def compile(node, opts) do
@@ -21,119 +23,69 @@ defmodule Etude.Node.Call do
 
       native = Etude.Utils.get_bin_or_atom(node.attrs, :native, false)
 
-      quote line: node.line do
-        ## after running some benchmarks inlining doesn't help much here
-        @compile {:nowarn_unused_function, {unquote(name), unquote(length(op_args))}}
-        defp unquote(name)(unquote_splicing(op_args)) do
-          Etude.Memoize.wrap unquote(name) do
-            ## dependencies
-            unquote_splicing(Children.call(arguments, opts))
-
-            ## exec
-            case unquote(exec)(unquote_splicing(Children.vars(arguments, opts)), unquote_splicing(op_args)) do
-              nil ->
-                Logger.debug("#{__MODULE__} :: " <> unquote("#{name} deps pending"))
-                {nil, unquote(state)}
-              :pending ->
-                Logger.debug("#{__MODULE__} :: " <> unquote("#{name} call pending"))
-                {nil, unquote(state)}
-              {val, state} ->
-                Logger.debug(fn -> "#{__MODULE__} :: " <> unquote("#{name} result -> ") <> inspect(elem(val, 1)) end)
-                {val, state}
-            end
-          end
-        end
-
-        unquote(compile_exec(exec, native, node, opts))
-        defp unquote(exec)(unquote_splicing(Children.wildcard(arguments, opts)), unquote_splicing(op_args)) do
-          nil
-        end
-
-        unquote_splicing(Children.compile(arguments, opts))
+      defop node, opts, [:memoize], """
+      #{Children.call(arguments, opts)},
+      case #{exec}(#{Children.vars(arguments, opts, ", ")}#{op_args}) of
+        nil ->
+          ?DEBUG(<<"#{name} deps pending">>),
+          {nil, #{state}};
+        pending ->
+          ?DEBUG(<<"#{name} call pending">>),
+          {nil, #{state}};
+        CallRes ->
+          #{debug_res(name, "element(1, CallRes)", "call")},
+          CallRes
       end
+      """, Dict.put(Children.compile(arguments, opts), exec, compile_exec(exec, native, node, opts))
     end
 
-    defp compile_exec(name, true, node, opts) do
-      mod = node.module
-      fun = node.function
+    defp compile_exec(name, native, node, opts) do
+      mod = escape(node.module)
+      fun = escape(node.function)
       arguments = node.arguments
-      args = Macro.var(:args, nil)
-
-      quote do
-        defp unquote(name)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
-          unquote(args) = unquote(Children.vars(arguments, opts))
-          id = unquote(Etude.Node.Call.compile_id_hash(mod, fun, arguments))
-          case Etude.Memoize.get(id, scope: :call) do
-            :undefined ->
-              Logger.debug(fn ->
-                "#{__MODULE__} :: " <>
-                unquote("calling #{mod}.#{fun}(") <>
-                  (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"
-              end)
-              val = unquote(mod).unquote(fun)(unquote_splicing(Children.vars(arguments, opts)))
-              {{unquote(Etude.Utils.ready), val}, unquote(state)}
-            val ->
-              {val, unquote(state)}
-          end
-        end
-      end
+      """
+      #{name}(#{Children.args(arguments, opts, ", ")}#{op_args}) ->
+        _Args = [#{Children.vars(arguments, opts)}],
+        _ID = #{compile_mfa_hash(mod, fun, arguments, "_Args")},
+        case ?MEMO_GET(#{req}, _ID, call) of
+          undefined ->
+            #{debug_call(node.module, node.function, "_Args")},
+      #{indent(exec_block(mod, fun, arguments, native, node.attrs, opts), 2)};
+          Val ->
+            {Val, #{state}}
+        end;
+      #{name}(#{Children.wildcard(arguments, opts, ", ")}#{op_args}) ->
+        nil.
+      """
     end
 
-    defp compile_exec(name, _native, node, opts) do
-      mod = node.module
-      fun = node.function
-      arguments = node.arguments
-      attrs = Macro.escape(node.attrs)
-      args = Macro.var(:args, nil)
-
-      quote do
-        defp unquote(name)(unquote_splicing(Children.args(arguments, opts)), unquote_splicing(op_args)) do
-          unquote(args) = unquote(Children.vars(arguments, opts))
-          id = unquote(Etude.Node.Call.compile_id_hash(mod, fun, arguments))
-          case Etude.Memoize.get(id, scope: :call) do
-            :undefined ->
-              Logger.debug(fn ->
-                "#{__MODULE__} :: " <>
-                unquote("calling #{mod}.#{fun}(") <>
-                  (Enum.map(unquote(args), &inspect/1) |> Enum.join(", ")) <> ")"
-              end)
-              case unquote(resolve).(unquote(mod),
-                                     unquote(fun),
-                                     unquote(args),
-                                     unquote(state),
-                                     self(),
-                                     {:erlang.make_ref(), id},
-                                     unquote(attrs)) do
-                ## TODO handle pids
-                {:ok, pid} when is_pid(pid) ->
-                  ref = :erlang.monitor(:process, pid)
-                  Etude.Memoize.put(id, ref, scope: :call)
-                  :pending
-                {:ok, val} ->
-                  out = {unquote(Etude.Utils.ready), val}
-                  Etude.Memoize.put(id, out, scope: :call)
-                  {out, unquote(state)}
-                {:ok, val, state} ->
-                  out = {unquote(Etude.Utils.ready), val}
-                  Etude.Memoize.put(id, out, scope: :call)
-                  {out, state}
-              end
-            ref when is_reference(ref) ->
-              :pending
-            val ->
-              {val, unquote(state)}
-          end
-        end
-      end
+    defp exec_block(mod, fun, arguments, true, _, opts) do
+      """
+        Val = {#{ready}, #{mod}:#{fun}(#{Children.vars(arguments, opts)})},
+        ?MEMO_PUT(#{req}, _ID, call, Val),
+        {Val, #{state}}
+      """
     end
-  end
 
-  def compile_id_hash(mod, fun, []) do
-    :erlang.phash2({mod, fun, []})
-  end
-  def compile_id_hash(mod, fun, _) do
-    quote do
-      :erlang.phash2({unquote(mod), unquote(fun), unquote(Macro.var(:args, nil))})
+    defp exec_block(mod, fun, _arguments, _, attrs, _opts) do
+      """
+        case #{resolve}(#{mod}, #{fun}, _Args, #{state}, self(), {erlang:make_ref(), _ID}, #{escape(attrs)}) of
+          {ok, Pid} when is_pid(Pid) ->
+            Ref = erlang:monitor(process, Pid),
+            ?MEMO_PUT(#{req}, _ID, call, Ref),
+            pending;
+          {ok, Val} ->
+            Out = {#{ready}, Val},
+            ?MEMO_PUT(#{req}, _ID, call, Out),
+            {Out, #{state}};
+          {ok, Val, NewState} ->
+            Out = {#{ready}, Val},
+            ?MEMO_PUT(#{req}, _ID, call, Out),
+            {Out, NewState}
+        end;
+      Ref when is_reference(Ref) ->
+        pending
+      """
     end
   end
 end

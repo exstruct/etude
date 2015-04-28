@@ -1,28 +1,34 @@
 defmodule Etude.Vars do
-  def state(context \\ nil) do
-    Macro.var(:_state, context)
+  def state do
+    "_State"
   end
-  def resolve(context \\ nil) do
-    Macro.var(:_resolve, context)
+  def resolve do
+    "_Resolve"
   end
-  def req(context \\ nil) do
-    Macro.var(:_req, context)
+  def req do
+    "_Req"
   end
-  def scope(context \\ nil) do
-    Macro.var(:_scope, context)
-  end
-
-  def op_args(context \\ nil) do
-    [state(context), resolve(context), req(context), scope(context)]
+  def scope do
+    "_Scope"
   end
 
-  def child_scope(name, context \\ nil)
-  def child_scope(name, context) when is_atom(name) do
-    child_scope(Macro.var(name, context), context)
+  def inspect do
+    "?INSPECT"
   end
-  def child_scope(vars, _context) do
-    quote do
-      unquote(scope) = :erlang.phash2({unquote(scope), unquote(vars)})
-    end
+
+  def op_args(state_var \\ state) do
+    [state_var, resolve, req, scope] |> Enum.join(", ")
+  end
+
+  def op_args_length do
+    4
+  end
+
+  def child_scope(name)
+  def child_scope(name) when is_list(name) do
+    child_scope(Enum.join(name, ", "))
+  end
+  def child_scope(vars) do
+    "rebind(#{scope}) = erlang:phash2({#{scope}, #{vars}})"
   end
 end
