@@ -25,7 +25,9 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:rebind, "~> 0.1.1"},
+    [{:rebind, github: "camshaft/rebind"},
+     # hex isn't downloading the rebind dependencies for some reason...
+     {:parse_trans, github: "uwiger/parse_trans"},
      {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:excoveralls, "~> 0.3", only: [:dev, :test]},
