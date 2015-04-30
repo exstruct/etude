@@ -3,7 +3,7 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "0.1.4",
+     version: "0.1.5",
      elixir: "~> 1.0",
      description: "parallel computation coordination compiler for erlang/elixir",
      deps: deps,
@@ -25,7 +25,7 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:rebind, github: "~> 0.1.0"},
+    [{:rebind, "~> 0.1.0"},
      {:lineo, "~> 0.0.1"},
      # hex isn't downloading the rebind dependencies for some reason...
      {:parse_trans, github: "uwiger/parse_trans"},
