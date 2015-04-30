@@ -44,7 +44,7 @@ defmodule Etude.Utils do
     indent(block, 1) <> "."
   end
 
-  def file_line(%{:line => nil} = node, opts) do
+  def file_line(%{:line => nil}, _opts) do
     ""
   end
   def file_line(%{:__struct__ => _} = node, opts) do

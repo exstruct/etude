@@ -36,8 +36,7 @@ defmodule Etude.Template do
     {function, [
     """
     -module(#{name}).
-    -compile(native).
-    -compile({hipe, [o3]}).
+    #{native(Keyword.get(opts, :native, false))}
     -compile({parse_transform, rebind}).
     -compile({parse_transform, lineo}).
 
@@ -105,5 +104,15 @@ defmodule Etude.Template do
       #{loop}
     end
     """
+  end
+
+  defp native(true) do
+    """
+    -compile(native).
+    -compile({hipe, [o3]}).
+    """
+  end
+  defp native(_) do
+    ""
   end
 end
