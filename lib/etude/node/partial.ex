@@ -25,7 +25,7 @@ defmodule Etude.Node.Partial do
       defop node, opts, [:memoize], """
       _Props = #{Children.props(props, opts)},
       #{child_scope(scope)},
-      #{debug_call(node.module, fun_a, "[_Props]")},
+      #{debug_call(node.module, fun_a, "[_Props]", opts)},
       #{mod}:#{fun}(#{op_args}, _Props)
       """, Children.compile(Map.values(props), opts)
     end

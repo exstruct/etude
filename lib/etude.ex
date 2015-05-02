@@ -46,28 +46,44 @@ defmodule Etude do
     %Template{name: name,
               children: transform_children(children, opts)}
     |> Template.compile(opts)
+    |> to_forms(opts)
     |> to_beam(Keyword.get(opts, :file, ""))
   end
 
-  defp to_beam({fun, str}, src) do
-    file = "/tmp/etude_#{:erlang.phash2(:os.timestamp())}.erl"
+  defp to_forms({fun, contents}, _opts) do
+    string = contents |> to_string |> String.to_char_list
+    {:ok, tokens, _} = :erl_scan.string(string)
+    {forms, _} = Enum.reduce(tokens, {[], []}, fn
+      ({:dot, _} = dot, {forms, acc}) ->
+        {:ok, form} = :erl_parse.parse_form(:lists.reverse([dot | acc]))
+        {[form | forms], []}
+      (token, {forms, acc}) ->
+        {forms, [token | acc]}
+    end)
+    forms = forms
+    |> :lists.reverse
+    |> :rebind.parse_transform([])
+    |> :lineo.parse_transform([])
+    {fun, forms}
+  end
 
+  defp to_beam(forms, src) when is_binary(src) do
+    to_beam(forms, String.to_char_list(src))
+  end
+  defp to_beam({fun, forms}, src) do
     opts = [
       :binary,
       :report_errors,
-      {:source, src |> String.to_char_list},
+      {:source, src},
       :no_error_module_mismatch
     ]
 
-    File.write!(file, str)
-    res = case :compile.file(file |> String.to_char_list, opts) do
+    case :compile.forms(forms, opts) do
       {:ok, mod, bin} ->
         {:ok, mod, fun, bin}
       other ->
         other
     end
-    File.rm!(file)
-    res
   end
 
   defp transform_children(children, opts) do

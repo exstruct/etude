@@ -34,10 +34,10 @@ defmodule Etude.Node.Comprehension do
       #{Children.call([collection], opts)},
       case #{exec}(#{Children.vars([collection], opts, ", ")}#{op_args}) of
         {nil, PendingState} ->
-          ?DEBUG(<<"#{name} comprehension pending">>),
+          #{debug('(<<"#{name} comprehension pending">>', opts)},
           {nil, PendingState};
         CollRes ->
-          #{debug_res(name, "element(1, CollRes)", "comprehension")},
+          #{debug_res(name, "element(1, CollRes)", "comprehension", opts)},
           CollRes
       end
       """, Dict.put(Children.compile(children, opts), exec, compile_exec(exec, node, opts))
@@ -52,14 +52,14 @@ defmodule Etude.Node.Comprehension do
       #{name}({#{ready}, false}, #{op_args}) ->
         {{#{ready}, #{get_default(node)}}, #{state}};
       #{name}({#{ready}, Collection}, #{op_args("InitialState")}) ->
-        ?DEBUG([<<"#{name} comprehension in ">>, ?INSPECT(Collection)]),
+        #{debug('[<<"#{name} comprehension in ">>, etude_inspect(Collection)]', opts)},
         case 'Elixir.Enum':reduce(Collection, {0, [], InitialState}, fun
       #{indent(reduce_clauses(node, opts), 2)}
         end) of
           {_, nil, NilState} ->
             {nil, NilState};
           {_, Val, ValState} ->
-            ?DEBUG([<<"#{name} comprehension out ">>, ?INSPECT(Val)]),
+            #{debug('[<<"#{name} comprehension out ">>, etude_inspect(Val)]', opts)},
             Reversed = lists:reverse(Val),
       #{indent(convert_to_type(node, "Reversed"), 3)},
             {{#{ready}, Reversed}, ValState}
@@ -126,12 +126,14 @@ defmodule Etude.Node.Comprehension do
     end
     defp assign_vars(%Comprehension{key: nil, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
-      "?MEMO_PUT(#{req}, #{v}, #{scope}, {#{ready}, _Item})"
+      memo_put(v, "{#{ready}, _Item}")
     end
     defp assign_vars(%Comprehension{key: key, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
       k = Etude.Node.Assign.resolve(key, opts)
-      "?MEMO_PUT(#{req}, #{v}, #{scope}, {#{ready}, _Item}),\n?MEMO_PUT(#{req}, #{k}, #{scope}, {#{ready}, _Key})"
+      memo_put(v, "{#{ready}, _Item}")
+      <> ",\n"
+      <> memo_put(k, "{#{ready}, _Key}")
     end
 
     defp get_default(%Comprehension{type: :list}) do

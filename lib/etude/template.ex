@@ -20,7 +20,9 @@ defmodule Etude.Template do
 
     function = Keyword.get(opts, :function, :render)
 
-    opts = Keyword.put_new(opts, :prefix, function)
+    opts = opts
+    |> Keyword.put_new(:prefix, function)
+    |> Keyword.put_new(:module, name)
 
     partial = "#{function}_partial" |> String.to_atom
     loop = "#{function}_loop" |> String.to_atom
@@ -35,32 +37,22 @@ defmodule Etude.Template do
 
     {function, [
     """
+    #{file_line(template, opts)}
     -module(#{name}).
     #{native(Keyword.get(opts, :native, false))}
-    -compile({parse_transform, rebind}).
-    -compile({parse_transform, lineo}).
-
-    %% TODO expose as an option
-    %-define(DEBUG(Str), io:put_chars([<<"DEBUG | ">>, ?FILE, <<":">>, integer_to_list(?LINE), <<" :: ">>, Str, <<"\\n">>])).
-    -define(DEBUG(_Str), nil).
-    -define(INSPECT, fun(Val) -> ?INSPECT(Val) end).
-    -define(INSPECT(Val), 'Elixir.Kernel':inspect(Val)).
-    -define(MEMO_GET(Req, Key, Scope), get({Req, Key, Scope})).
-    -define(MEMO_PUT(Req, Key, Scope, Value), put({Req, Key, Scope}, Value)).
 
     -export([#{function}/2, #{function}/3, #{partial}/5]).
 
-    #{file_line(template, opts)}
     #{function}(State, Resolve) ->
       #{function}(State, Resolve, erlang:make_ref()).
     #{file_line(template, opts)}
     #{function}(State, Resolve, Req) ->
-      ?DEBUG(<<"init">>),
+      #{debug("init", opts)},
       #{loop}(0, State, Resolve, Req, 0).
 
     #{partial}(#{op_args}, Args) ->
-      ?DEBUG([<<"init partial">>]),
-      ?MEMO_PUT(#{req}, {?MODULE, '__ARGV__'}, #{scope}, Args),
+      #{debug("init partial", opts)},
+      #{memo_put(Etude.Node.Prop.key(opts), 'Args')},
       case #{root} of
         {{#{ready}, _} = PartialVal, NewState} ->
           {PartialVal, NewState};
@@ -71,7 +63,7 @@ defmodule Etude.Template do
       end.
 
     #{loop}(Count, #{op_args}) ->
-      ?DEBUG([<<"loop (">>, ?INSPECT(Count), <<")">>]),
+      #{debug('[<<"loop (">>, etude_inspect(Count), <<")">>]', opts)},
       case #{root} of
         {{#{ready}, LoopVal}, NewState} ->
           {LoopVal, NewState};
@@ -82,12 +74,15 @@ defmodule Etude.Template do
       end.
 
     #{wait}(Count, #{op_args}) ->
-      ?DEBUG([<<"wait (">>, ?INSPECT(Count), <<")">>]),
+      #{debug('[<<"wait (">>, etude_inspect(Count), <<")">>]', opts)},
     #{indent(wait_block(immediate, timeout, "{error, timeout, #{state}}"), 1)}.
 
     #{immediate}(Count, #{op_args}) ->
-      ?DEBUG([<<"wait[immediate] (">>, ?INSPECT(Count), <<")">>]),
+      #{debug('[<<"wait[immediate] (">>, etude_inspect(Count), <<")">>]', opts)},
     #{indent(wait_block(immediate, 0, "#{loop}(Count, #{op_args})"), 1)}.
+
+    etude_inspect(Val) ->
+      'Elixir.Kernel':inspect(Val).
     """ | children]}
   end
 
@@ -96,7 +91,7 @@ defmodule Etude.Template do
     receive
       {ok, WaitVal, {Ref, ID}} when is_reference(Ref) ->
         Out = {#{ready}, WaitVal},
-        ?MEMO_PUT(#{req}, ID, call, Out),
+        #{memo_put('ID', 'Out', 'call')},
         #{name}(Count, #{op_args});
       {'DOWN', _Ref, process, _Pid, normal} ->
         #{name}(Count, #{op_args})

@@ -19,23 +19,23 @@ defmodule Etude.Utils do
     Dict.put(children, name, contents)
   end
 
-  defp maybe_memoize(name, _opts, block, true) do
+  defp maybe_memoize(name, opts, block, true) do
     """
-      ?DEBUG(<<"#{name} cache check">>),
-      case ?MEMO_GET(#{req}, #{name}, #{scope}) of
+      #{debug('<<"#{name} cache check">>', opts)},
+      case #{memo_get(name)} of
         undefined ->
-          MEMO_RES = begin
+          MemoRes = begin
     #{indent(block, 4)}
           end,
-          case MEMO_RES of
+          case MemoRes of
             {nil, _} ->
-              MEMO_RES;
+              MemoRes;
             {MemoVal, _} ->
-              ?MEMO_PUT(#{req}, #{name}, #{scope}, MemoVal),
-              MEMO_RES
+              #{memo_put(name, "MemoVal")},
+              MemoRes
           end;
         CachedVal ->
-          #{debug_res(name, "CachedVal", "cached")},
+          #{debug_res(name, "CachedVal", "cached", opts)},
           {CachedVal, #{state}}
       end.
     """
@@ -63,12 +63,27 @@ defmodule Etude.Utils do
     |> Enum.join("\n")
   end
 
-  def debug_res(name, val, message \\ "result") do
-    "?DEBUG([<<\"#{name} #{message} -> \">>, ?INSPECT(element(2, #{val})), <<\" (scope \">>, ?INSPECT(#{scope}), <<\")\">>])"
+  def debug(code, opts) do
+    if opts[:debug] do
+      ~s{io:put_chars([<<"DEBUG | ">>, <<" :: ">>, #{code}, <<"\\n">>])}
+    else
+      "false"
+    end
   end
 
-  def debug_call(mod, fun, args_var) do
-    "?DEBUG([<<\"calling #{mod}.#{fun}(\">>, 'Elixir.Enum':join('Elixir.Enum':map(#{args_var}, ?INSPECT), <<\", \">>), <<\")\">>])"
+  def memo_get(key, s \\ scope) do
+    "get({#{req}, #{s}, #{key}})"
+  end
+  def memo_put(key, value, s \\ scope) do
+    "put({#{req}, #{s}, #{key}}, #{value})"
+  end
+
+  def debug_res(name, val, message \\ "result", opts) do
+    debug("[<<\"#{name} #{message} -> \">>, etude_inspect(element(2, #{val})), <<\" (scope \">>, etude_inspect(#{scope}), <<\")\">>]", opts)
+  end
+
+  def debug_call(mod, fun, args_var, opts) do
+    debug("[<<\"calling #{mod}.#{fun}(\">>, 'Elixir.Enum':join('Elixir.Enum':map(#{args_var}, fun etude_inspect/1), <<\", \">>), <<\")\">>]", opts)
   end
 
   def inline(name, arity) do

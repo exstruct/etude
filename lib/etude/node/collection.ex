@@ -15,10 +15,10 @@ defmodule Etude.Node.Collection do
     #{Children.call(node, opts)},
     case #{exec}(#{Children.vars(node, opts)}) of
       nil ->
-        ?DEBUG(<<"#{name} deps pending">>),
+        #{debug('<<"#{name} deps pending">>', opts)},
         {nil, #{state}};
       CollVal ->
-        #{debug_res(name, "CollVal", "collection")},
+        #{debug_res(name, "CollVal", "collection", opts)},
         {CollVal, #{state}}
     end
     """, Dict.put(Children.compile(node, opts), exec, compile_exec(exec, node, opts))
