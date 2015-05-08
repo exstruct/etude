@@ -18,14 +18,17 @@ defmodule Etude.Node.Cond do
   end
 
   defimpl Etude.Node, for: Etude.Node.Cond do
-    defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 
-    def name(node, opts) do
-      Etude.Node.Cond.normalize(node)
-      |> Etude.Node.Any.name(opts)
+    def children(node) do
+      [node.expression | node.arms]
+    end
+
+    def set_children(node, [expression | arms]) do
+      %{node | expression: expression, arms: arms}
     end
 
     def compile(node, opts) do
@@ -51,6 +54,11 @@ defmodule Etude.Node.Cond do
           {nil, #{state}}
       end
       """, Children.compile([expression|arms], opts)
+    end
+
+    def name(node, opts) do
+      Etude.Node.Cond.normalize(node)
+      |> Etude.Node.Any.name(opts)
     end
   end
 end

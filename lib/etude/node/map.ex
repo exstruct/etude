@@ -1,10 +1,18 @@
 defimpl Etude.Node, for: Map do
+  defdelegate assign(node, opts), to: Etude.Node.Any
+  defdelegate call(node, opts), to: Etude.Node.Any
   defdelegate compile(node, opts), to: Etude.Node.Collection
   defdelegate name(node, opts), to: Etude.Node.Any
-  defdelegate call(node, context), to: Etude.Node.Any
-  defdelegate assign(node, context), to: Etude.Node.Any
   defdelegate prop(node, opts), to: Etude.Node.Any
-  defdelegate var(node, context), to: Etude.Node.Any
+  defdelegate var(node, opts), to: Etude.Node.Any
+
+  def children(node) do
+    :maps.to_list(node)
+  end
+
+  def set_children(_, node) do
+    :maps.from_list(node)
+  end
 end
 
 defimpl Etude.Node.Collection.Construction, for: Map do

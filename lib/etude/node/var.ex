@@ -5,14 +5,13 @@ defmodule Etude.Node.Var do
   import Etude.Vars
 
   defimpl Etude.Node, for: Etude.Node.Var do
+    defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate children(node), to: Etude.Node.Any
+    defdelegate set_children(node, children), to: Etude.Node.Any
+    defdelegate compile(node, opts), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
-    defdelegate assign(node, context), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
-    defdelegate var(node, context), to: Etude.Node.Any
-
-    def compile(_node, _opts) do
-      nil
-    end
+    defdelegate var(node, opts), to: Etude.Node.Any
 
     def call(node, opts) do
       target = Etude.Node.Assign.resolve(node, opts)

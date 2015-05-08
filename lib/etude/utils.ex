@@ -11,18 +11,20 @@ defmodule Etude.Utils do
 
   def defop(node, opts, opopts, block, children \\ HashDict.new) do
     name = Etude.Node.name(node, opts)
+    scope = Keyword.get(opopts, :scope, scope())
+    should_memoize = :lists.member(:memoize, opopts)
     contents = """
     #{file_line(node, opts)}
     #{name}(#{op_args}) ->
-    #{maybe_memoize(name, opts, block, :lists.member(:memoize, opopts))}
+    #{maybe_memoize(name, opts, block, scope, should_memoize)}
     """
     Dict.put(children, name, contents)
   end
 
-  defp maybe_memoize(name, opts, block, true) do
+  defp maybe_memoize(name, opts, block, scope, true) do
     """
       #{debug('<<"#{name} cache check">>', opts)},
-      case #{memo_get(name)} of
+      case #{memo_get(name, scope)} of
         undefined ->
           MemoRes = begin
     #{indent(block, 4)}
@@ -31,7 +33,7 @@ defmodule Etude.Utils do
             {nil, _} ->
               MemoRes;
             {MemoVal, _} ->
-              #{memo_put(name, "MemoVal")},
+              #{memo_put(name, "MemoVal", scope)},
               MemoRes
           end;
         CachedVal ->
@@ -40,7 +42,7 @@ defmodule Etude.Utils do
       end.
     """
   end
-  defp maybe_memoize(_name, _opts, block, _) do
+  defp maybe_memoize(_name, _opts, block, _, _) do
     indent(block, 1) <> "."
   end
 

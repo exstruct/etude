@@ -12,11 +12,19 @@ defmodule Etude.Node.Comprehension do
   import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Comprehension do
-    defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate name(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
-    defdelegate name(node, opts), to: Etude.Node.Any
+
+    def children(node) do
+      [node.collection, %Etude.Node.Block{side_effects: false, children: [node.key, node.value, node.expression]}]
+    end
+
+    def set_children(node, [collection, %Etude.Node.Block{children: [key, value, expression]}]) do
+      %{node | collection: collection, key: key, value: value, expression: expression}
+    end
 
     def compile(node, opts) do
       name = Etude.Node.name(node, opts)
@@ -126,14 +134,14 @@ defmodule Etude.Node.Comprehension do
     end
     defp assign_vars(%Comprehension{key: nil, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
-      memo_put(v, "{#{ready}, _Item}")
+      memo_put(v, "{#{ready}, _Item}", v)
     end
     defp assign_vars(%Comprehension{key: key, value: value}, opts) do
       v = Etude.Node.Assign.resolve(value, opts)
       k = Etude.Node.Assign.resolve(key, opts)
-      memo_put(v, "{#{ready}, _Item}")
+      memo_put(v, "{#{ready}, _Item}", v)
       <> ",\n"
-      <> memo_put(k, "{#{ready}, _Key}")
+      <> memo_put(k, "{#{ready}, _Key}", k)
     end
 
     defp get_default(%Comprehension{type: :list}) do

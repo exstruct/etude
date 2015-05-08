@@ -10,11 +10,19 @@ defmodule Etude.Node.Call do
   import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Call do
-    defdelegate name(node, opts), to: Etude.Node.Any
-    defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate name(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
+
+    def children(node) do
+      node.arguments
+    end
+
+    def set_children(node, arguments) do
+      %{node | arguments: arguments}
+    end
 
     def compile(node, opts) do
       name = Etude.Node.name(node, opts)

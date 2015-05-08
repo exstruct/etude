@@ -1,29 +1,42 @@
 defmodule Etude.Passes.SideEffects do
-  def transform(ast, _opts) do
-    transform(ast, [], [])
+  alias Etude.Node
+
+  def transform(ast, _opts \\ nil) do
+    [%Node.Block{children: children}] = recurse([%Node.Block{children: ast}])
+    children
   end
 
-  defp transform([], assigns, _) do
+  defp recurse(node) do
+    children = Enum.map(Node.children(node), fn
+      (%Node.Block{side_effects: true} = child) ->
+        %{child | children: inline(child.children, [], [])}
+      (child) ->
+        recurse(child)
+    end)
+    Node.set_children(node, children)
+  end
+
+  defp inline([], assigns, _) do
     :lists.reverse(assigns)
   end
-  defp transform([node], assigns, []) do
-    transform([], [node | assigns], [])
+  defp inline([node], assigns, []) do
+    inline([], [recurse(node) | assigns], [])
   end
-  defp transform([node], assigns, se) do
-    call = %Etude.Node.Call{
+  defp inline([node], assigns, se) do
+    call = %Node.Call{
       module: :erlang,
       function: :hd,
-      arguments: [[node | :lists.reverse(se)]],
+      arguments: [[recurse(node) | :lists.reverse(se)]],
       attrs: %{
         native: true
       }
     }
-    transform([], [call | assigns], [])
+    inline([], [call | assigns], [])
   end
-  defp transform([%Etude.Node.Assign{} = node | rest], assigns, se) do
-    transform(rest, [node | assigns], se)
+  defp inline([%Node.Assign{} = node | rest], assigns, se) do
+    inline(rest, [recurse(node) | assigns], se)
   end
-  defp transform([node | rest], assigns, se) do
-    transform(rest, assigns, [node | se])
+  defp inline([node | rest], assigns, se) do
+    inline(rest, assigns, [recurse(node) | se])
   end
 end

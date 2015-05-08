@@ -52,4 +52,42 @@ defmodule EtudeTest.Comprehension do
       }
     ]
   ], %{"bar" => "foo", "bang" => "baz"}
+
+  etudetest "should support a nested comprehension", [
+    render: [
+      %Comprehension{
+        collection: [1,2,3],
+        expression: %Comprehension{
+          collection: [1,2,3],
+          expression: [%Var{name: :value1}, %Var{name: :value2}],
+          value: %Assign{
+            name: :value2
+          }
+        },
+        value: %Assign{
+          name: :value1
+        }
+      }
+    ]
+  ], [[[1, 1], [1, 2], [1, 3]],
+      [[2, 1], [2, 2], [2, 3]],
+      [[3, 1], [3, 2], [3, 3]]]
+
+  etudetest "should pull in variables from outside of the scope", [
+    render: [
+      %Assign{
+        expression: %Var{name: :rzc},
+        name: false
+      },
+      %Assign{
+        expression: %Cond{
+          arms: [
+            %Comprehension{}
+          ]
+        },
+        name: :rzc
+      },
+      nil
+    ]
+  ], nil
 end

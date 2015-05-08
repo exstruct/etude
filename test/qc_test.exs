@@ -77,19 +77,12 @@ defmodule EtudeTest.QC do
     ]
   end
 
-  def etude_assign do
-    assign = exq_struct %Assign{
-      ## pick a variable that hasn't been assigned yet
-      name: suchthat(larger(atom, 8), fn(val) ->
-        !EtudeTest.QC.Helper.exists_var(val)
-      end),
-      expression: delay(etude_expression),
+  def etude_assign(expression \\ delay(etude_expression)) do
+    exq_struct %Assign{
+      name: etude_varname,
+      expression: expression,
       line: 1
     }
-    bind assign, fn(var) ->
-      EtudeTest.QC.Helper.put_var(var.name)
-      var
-    end
   end
 
   def etude_call do
@@ -117,8 +110,8 @@ defmodule EtudeTest.QC do
   def etude_comprehension do
     comp = exq_struct %Comprehension{
       collection: smaller(delay(list(etude_expression))),
-      key: oneof([etude_assign, nil]),
-      value: oneof([etude_assign, nil]),
+      key: oneof([etude_assign(nil), nil]),
+      value: oneof([etude_assign(nil), nil]),
       expression: smaller(delay(etude_expression)),
       line: 1
     }
@@ -154,7 +147,7 @@ defmodule EtudeTest.QC do
   end
 
   def etude_var do
-    domain(:etude_varname, fn(self, size) ->
+    domain(:etude_var, fn(self, size) ->
       case EtudeTest.QC.Helper.get_vars do
         [] ->
           {_, var} = pick(etude_literal(0), size)
@@ -174,6 +167,17 @@ defmodule EtudeTest.QC do
       {10, smaller(etude_assign)},
       {2, smaller(etude_call)}
     ])))
+  end
+
+  def etude_varname do
+    var = suchthat(larger(atom, 8), fn(val) ->
+      !EtudeTest.QC.Helper.exists_var(val)
+    end)
+
+    bind var, fn(val) ->
+      EtudeTest.QC.Helper.put_var(val)
+      val
+    end
   end
 
   def etude_varstruct(name) do

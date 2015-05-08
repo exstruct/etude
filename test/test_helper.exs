@@ -25,6 +25,7 @@ defmodule EtudeTestHelper do
       defmodule unquote(mod) do
         use Etude
         alias Etude.Node.Assign
+        alias Etude.Node.Block
         alias Etude.Node.Call
         alias Etude.Node.Collection
         alias Etude.Node.Comprehension

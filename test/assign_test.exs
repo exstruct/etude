@@ -26,4 +26,19 @@ defmodule EtudeTest.Assign do
       [%{%Var{name: :key} => %Var{name: :value}}]
     ]
   ], [%{"name" => "Joe"}]
+
+  etudetest "shouldn't matter in which order variables are assigned", [
+    render: [
+      %Assign{
+        name: :first,
+        expression: %Var{name: :second}
+      },
+      %Assign{
+        name: :second,
+        expression: "Foo"
+      },
+      %Var{name: :first}
+    ]
+  ], "Foo"
+
 end

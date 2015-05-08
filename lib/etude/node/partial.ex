@@ -9,11 +9,19 @@ defmodule Etude.Node.Partial do
   import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Partial do
+    defdelegate assign(node, opts), to: Etude.Node.Any
+    defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
-    defdelegate call(node, context), to: Etude.Node.Any
-    defdelegate assign(node, context), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
-    defdelegate var(node, context), to: Etude.Node.Any
+    defdelegate var(node, opts), to: Etude.Node.Any
+
+    def children(node) do
+      :maps.to_list(node.props)
+    end
+
+    def set_children(node, props) do
+      %{node | props: :maps.from_list(props)}
+    end
 
     def compile(node, opts) do
       mod = escape(node.module)

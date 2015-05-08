@@ -88,6 +88,8 @@ defmodule Etude do
 
   defp transform_children(children, opts) do
     children
+    |> Etude.Passes.Scopes.transform(opts)
     |> Etude.Passes.SideEffects.transform(opts)
+    # |> IO.inspect
   end
 end
