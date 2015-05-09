@@ -47,11 +47,11 @@ defmodule Etude.Template do
       #{function}(State, Resolve, erlang:make_ref()).
     #{file_line(template, opts)}
     #{function}(State, Resolve, Req) ->
-      #{debug("init", opts)},
+      #{debug(escape("init"), opts)},
       #{loop}(0, State, Resolve, Req, 0).
 
     #{partial}(#{op_args}, Args) ->
-      #{debug("init partial", opts)},
+      #{debug(escape("init partial"), opts)},
       #{memo_put(Etude.Node.Prop.key(opts), 'Args')},
       case #{root} of
         {{#{ready}, _} = PartialVal, NewState} ->

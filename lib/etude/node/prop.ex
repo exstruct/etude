@@ -24,14 +24,14 @@ defmodule Etude.Node.Prop do
         end.
 
       etude_props_exec(Props, Key) when is_map(Props) ->
-        maps:get(Key, Props, undefined);
+        maps:get(Key, Props, {#{ready}, undefined});
       etude_props_exec(_Props, _Key) ->
         {#{ready}, undefined}.
       """}
     end
 
     def call(node, opts) do
-      "etude_props(#{memo_get(Etude.Node.Prop.key(opts))}, #{node.name}, #{state})"
+      "etude_props(#{memo_get(Etude.Node.Prop.key(opts))}, #{escape(node.name)}, #{state})"
     end
   end
 
