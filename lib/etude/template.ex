@@ -38,7 +38,7 @@ defmodule Etude.Template do
     {function, [
     """
     #{file_line(template, opts)}
-    -module(#{name}).
+    -module(#{escape(name)}).
     #{native(Keyword.get(opts, :native, false))}
 
     -export([#{function}/2, #{function}/3, #{partial}/5]).

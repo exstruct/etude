@@ -36,6 +36,6 @@ defmodule Etude.Node.Prop do
   end
 
   def key(opts) do
-    "{#{opts[:module]}, '__PROPS__'}"
+    "{#{escape(opts[:module])}, '__PROPS__'}"
   end
 end
