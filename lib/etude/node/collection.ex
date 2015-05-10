@@ -30,6 +30,7 @@ defmodule Etude.Node.Collection do
         compile_exec_def(name, 0, node, opts, ".")
       count ->
         """
+        #{file_line(node, opts)}
         #{compile_exec_def(name, count, node, opts, ";")}
         #{name}(#{Children.wildcard(node, opts)}) ->
           nil.
@@ -40,6 +41,7 @@ defmodule Etude.Node.Collection do
   def compile_exec_def(name, count, node, opts, ending) do
     construction = Construction.construct(node, Children.vars(node, opts))
     """
+    #{file_line(node, opts)}
     #{inline(name, count)}
     #{name}(#{Children.args(node, opts)}) ->
       {#{ready},

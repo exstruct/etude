@@ -53,6 +53,7 @@ defmodule Etude.Node.Comprehension do
 
     defp compile_exec(name, node, opts) do
       """
+      #{file_line(node, opts)}
       #{name}({#{ready}, undefined}, #{op_args}) ->
         {{#{ready}, undefined}, #{state}};
       #{name}({#{ready}, nil}, #{op_args}) ->

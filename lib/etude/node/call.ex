@@ -52,6 +52,7 @@ defmodule Etude.Node.Call do
       fun = escape(node.function)
       arguments = node.arguments
       """
+      #{file_line(node, opts)}
       #{name}(#{Children.args(arguments, opts, ", ")}#{op_args}) ->
         _Args = [#{Children.vars(arguments, opts)}],
         _ID = #{compile_mfa_hash(mod, fun, arguments, "_Args")},
