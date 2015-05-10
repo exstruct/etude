@@ -47,7 +47,7 @@ defmodule Etude do
               children: transform_children(children, opts)}
     |> Template.compile(opts)
     |> to_forms(opts)
-    |> to_beam(Keyword.get(opts, :file, ""))
+    |> to_beam(Keyword.get(opts, :file, ""), opts[:erlc_options] || [])
   end
 
   defp to_forms({fun, contents}, _opts) do
@@ -67,16 +67,16 @@ defmodule Etude do
     {fun, forms}
   end
 
-  defp to_beam(forms, src) when is_binary(src) do
-    to_beam(forms, String.to_char_list(src))
+  defp to_beam(forms, src, opts) when is_binary(src) do
+    to_beam(forms, String.to_char_list(src), opts)
   end
-  defp to_beam({fun, forms}, src) do
+  defp to_beam({fun, forms}, src, opts) do
     opts = [
       :binary,
       :report_errors,
       {:source, src},
       :no_error_module_mismatch
-    ]
+    ] ++ opts
 
     case :compile.forms(forms, opts) do
       {:ok, mod, bin} ->
