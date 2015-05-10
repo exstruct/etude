@@ -24,11 +24,19 @@ defmodule Etude.Vars do
     4
   end
 
-  def child_scope(name)
-  def child_scope(name) when is_list(name) do
-    child_scope(Enum.join(name, ", "))
+  def child_scope(name, mode \\ :isolate)
+  def child_scope(name, mode) when is_list(name) do
+    child_scope(Enum.join(name, ", "), mode)
   end
-  def child_scope(vars) do
-    "rebind(#{scope}) = erlang:phash2({#{scope}, #{vars}})"
+  def child_scope(vars, :isolate) do
+    """
+    rebind(#{scope}) = {erlang:phash2({#{scope}, #{vars}}), 0}
+    """
+  end
+  def child_scope(vars, :inherit) do
+    """
+    {rebind(_Scope_Namespace), rebind(_Scope_Child)} = #{scope},
+    rebind(#{scope}) = {_Scope_Namespace, erlang:phash2({_Scope_Child, #{vars}})}
+    """
   end
 end

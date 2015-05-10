@@ -57,7 +57,8 @@ defmodule EtudeTest.Partial do
       }
     ],
     partial: [
-      ["Hello, ", %Prop{name: :name}]
+      %Assign{name: :name, expression: %Prop{name: :name}},
+      ["Hello, ", %Var{name: :name}]
     ]
   ], [["Hello, ", "Joe"], ["Hello, ", "Robert"], ["Hello, ", "Mike"]]
 

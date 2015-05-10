@@ -120,28 +120,25 @@ defmodule Etude.Node.Comprehension do
       "nil"
     end
     def create_child_scope(%Comprehension{key: nil, value: _}) do
-      child_scope("_Item")
+      child_scope("_Item", :inherit)
     end
     def create_child_scope(%Comprehension{key: _, value: nil}) do
-      child_scope("_Key")
+      child_scope("_Key", :inherit)
     end
     def create_child_scope(_) do
-      child_scope(["_Item", "_Key"])
+      child_scope(["_Item", "_Key"], :inherit)
     end
 
     defp assign_vars(%Comprehension{key: nil, value: nil}, _) do
       "nil"
     end
     defp assign_vars(%Comprehension{key: nil, value: value}, opts) do
-      v = Etude.Node.Assign.resolve(value, opts)
-      memo_put(v, "{#{ready}, _Item}", v)
+      Etude.Node.Assign.assign(value, "_Item", opts)
     end
     defp assign_vars(%Comprehension{key: key, value: value}, opts) do
-      v = Etude.Node.Assign.resolve(value, opts)
-      k = Etude.Node.Assign.resolve(key, opts)
-      memo_put(v, "{#{ready}, _Item}", v)
+      Etude.Node.Assign.assign(value, "_Item", opts)
       <> ",\n"
-      <> memo_put(k, "{#{ready}, _Key}", k)
+      <> Etude.Node.Assign.assign(key, "_Key", opts)
     end
 
     defp get_default(%Comprehension{type: :list}) do

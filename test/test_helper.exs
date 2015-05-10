@@ -21,6 +21,9 @@ defmodule EtudeTestHelper do
 
     resolve = &__MODULE__.resolve/7
 
+    opts = [file: __CALLER__.file,
+            native: Mix.env == :bench]
+
     module = quote do
       defmodule unquote(mod) do
         use Etude
@@ -37,7 +40,7 @@ defmodule EtudeTestHelper do
         unquote_splicing do
           for {name, ast} <- functions do
             quote do
-              defetude unquote(name), unquote(ast)
+              defetude unquote(name), unquote(ast), unquote(opts)
             end
           end
         end

@@ -15,7 +15,7 @@ defmodule Etude.Node.Assign do
     def compile(node, opts) do
       expression = node.expression
 
-      defop node, opts, [:memoize, {:scope, name(node, opts)}], """
+      defop node, opts, [:memoize, {:scope, Etude.Node.Assign.var_scope}], """
       #{Etude.Node.assign(expression, opts)},
       {#{Etude.Node.var(expression, opts)}, #{state}}
       """, Etude.Children.compile([expression], opts)
@@ -32,6 +32,15 @@ defmodule Etude.Node.Assign do
     def name(node, opts) do
       Etude.Node.Assign.resolve(node, opts)
     end
+  end
+
+  def var_scope do
+    "element(1, #{scope})"
+  end
+
+  def assign(assign, name, opts) do
+    v = Etude.Node.Assign.resolve(assign, opts)
+    memo_put(v, "{#{ready}, #{name}}", var_scope)
   end
 
   def resolve(%Etude.Node.Assign{name: name}, opts) do

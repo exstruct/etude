@@ -48,7 +48,7 @@ defmodule Etude.Template do
     #{file_line(template, opts)}
     #{function}(State, Resolve, Req) ->
       #{debug(escape("init"), opts)},
-      #{loop}(0, State, Resolve, Req, 0).
+      #{loop}(0, State, Resolve, Req, {0, 0}).
 
     #{partial}(#{op_args}, Args) ->
       #{debug(escape("init partial"), opts)},
