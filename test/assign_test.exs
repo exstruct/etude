@@ -5,10 +5,12 @@ defmodule EtudeTest.Assign do
     render: [
       %Assign{
         name: :var,
-        expression: "Robert"
+        expression: "Robert",
+        line: 1
       },
       %Var{
-        name: :var
+        name: :var,
+        line: 2
       }
     ]
   ], "Robert"
@@ -17,13 +19,15 @@ defmodule EtudeTest.Assign do
     render: [
       %Assign{
         name: :key,
-        expression: "name"
+        expression: "name",
+        line: 1
       },
       %Assign{
         name: :value,
-        expression: "Joe"
+        expression: "Joe",
+        line: 2
       },
-      [%{%Var{name: :key} => %Var{name: :value}}]
+      [%{%Var{name: :key, line: 3} => %Var{name: :value, line: 3}}]
     ]
   ], [%{"name" => "Joe"}]
 
@@ -31,13 +35,15 @@ defmodule EtudeTest.Assign do
     render: [
       %Assign{
         name: :first,
-        expression: %Var{name: :second}
+        expression: %Var{name: :second},
+        line: 1
       },
       %Assign{
         name: :second,
-        expression: "Foo"
+        expression: "Foo",
+        line: 2
       },
-      %Var{name: :first}
+      %Var{name: :first, line: 3}
     ]
   ], "Foo"
 

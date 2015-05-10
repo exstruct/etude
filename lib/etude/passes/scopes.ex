@@ -7,11 +7,11 @@ defmodule Etude.Passes.Scopes do
     def put(%{vars: vars, phase: :scan, id: id} = scope, %{name: name} = node, opts) do
       case Dict.get(vars, name) do
         ^id ->
-          IO.puts("#{opts[:file]}:#{node.line} Warning: variable '#{name}' is being reassigned")
+          IO.puts("#{opts[:file]}:#{node.line} Warning: variable '#{format_name(name)}' is being reassigned")
         nil ->
           nil
         _ ->
-          IO.puts("#{opts[:file]}:#{node.line} Warning: variable '#{name}' is being shadowed")
+          IO.puts("#{opts[:file]}:#{node.line} Warning: variable '#{format_name(name)}' is being shadowed")
       end
       %{scope | vars: Dict.put(vars, name, scope.id)}
     end
@@ -22,6 +22,9 @@ defmodule Etude.Passes.Scopes do
     def reset(scope = %{vars: vars1}, %{vars: vars2, id: id}) do
       %{scope | vars: Dict.merge(vars1, vars2), id: id, phase: :scan}
     end
+
+    defp format_name(nil), do: "nil"
+    defp format_name(name), do: name
   end
 
   alias Etude.Node
