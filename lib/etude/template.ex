@@ -1,5 +1,6 @@
 defmodule Etude.Template do
   defstruct name: nil,
+            vsn: nil,
             line: 1,
             children: []
 
@@ -39,6 +40,7 @@ defmodule Etude.Template do
     """
     #{file_line(template, opts)}
     -module(#{escape(name)}).
+    #{version(template.vsn)}
     #{native(Keyword.get(opts, :native, false))}
 
     -export([#{function}/2, #{function}/3, #{partial}/5]).
@@ -110,4 +112,7 @@ defmodule Etude.Template do
   defp native(_) do
     ""
   end
+
+  def version(nil), do: ""
+  def version(vsn), do: "-vsn(#{vsn})."
 end

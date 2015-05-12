@@ -44,10 +44,15 @@ defmodule Etude do
 
   def compile(name, children, opts \\ []) do
     %Template{name: name,
+              vsn: vsn(children, opts),
               children: transform_children(children, opts)}
     |> Template.compile(opts)
     |> to_forms(opts)
     |> to_beam(Keyword.get(opts, :file, ""), opts[:erlc_options] || [])
+  end
+
+  def vsn(children, opts) do
+    :erlang.phash2([children, opts])
   end
 
   defp to_forms({fun, contents}, _opts) do
