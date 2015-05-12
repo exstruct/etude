@@ -31,11 +31,15 @@ defmodule Etude.Node.Prop do
     end
 
     def call(node, opts) do
-      "etude_props(#{memo_get(Etude.Node.Prop.key(opts))}, #{escape(node.name)}, #{state})"
+      "etude_props(#{memo_get(Etude.Node.Prop.key(opts), Etude.Node.Prop.scope)}, #{escape(node.name)}, #{state})"
     end
   end
 
   def key(opts) do
     "{#{escape(opts[:module])}, '__PROPS__'}"
+  end
+
+  def scope do
+    "element(1, #{Etude.Vars.scope})"
   end
 end

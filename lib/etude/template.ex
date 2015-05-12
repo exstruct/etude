@@ -52,9 +52,9 @@ defmodule Etude.Template do
       #{debug(escape("init"), opts)},
       #{loop}(0, State, Resolve, Req, {0, 0}).
 
-    #{partial}(#{op_args}, Args) ->
+    #{partial}(#{op_args}, Props) ->
       #{debug(escape("init partial"), opts)},
-      #{memo_put(Etude.Node.Prop.key(opts), 'Args')},
+      #{memo_put(Etude.Node.Prop.key(opts), 'Props', Etude.Node.Prop.scope)},
       case #{root} of
         {{#{ready}, _} = PartialVal, NewState} ->
           {PartialVal, NewState};

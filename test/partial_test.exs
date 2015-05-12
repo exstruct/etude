@@ -105,4 +105,23 @@ defmodule EtudeTest.Partial do
     ]
   ], [:math, :add, 3]
 
+  etudetest "should support props inside comprehensions", [
+    render: [
+      %Assign{name: :name, expression: "Robert"},
+      %Partial{module: __MODULE__, function: :partial, props: %{name: %Var{name: :name}}}
+    ],
+    partial: [
+      %Comprehension{
+        collection: ["facebook", "twitter", "linkedin"],
+        value: %Assign{name: :network},
+        expression: %{
+          network: %Var{name: :network},
+          name: %Prop{name: :name}
+        }
+      }
+    ]
+  ], [%{network: "facebook", name: "Robert"},
+      %{network: "twitter", name: "Robert"},
+      %{network: "linkedin", name: "Robert"}]
+
 end
