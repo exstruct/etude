@@ -1,8 +1,8 @@
 defmodule Etude.Template do
   defstruct name: nil,
-            vsn: nil,
-            line: 1,
-            children: []
+            version: nil,
+            children: [],
+            line: 1
 
   import Etude.Utils
   import Etude.Vars
@@ -16,14 +16,16 @@ defmodule Etude.Template do
   end
 
   def compile(template, opts \\ []) do
-    name = template.name
+
+    [main_block(template, opts),
+     template.children
+     |> Etude.Children.compile(opts)
+     |> Dict.values]
+  end
+
+  defp main_block(template, opts) do
+    function = opts[:main]
     timeout = Keyword.get(opts, :timeout, 5000)
-
-    function = Keyword.get(opts, :function, :render)
-
-    opts = opts
-    |> Keyword.put_new(:prefix, function)
-    |> Keyword.put_new(:module, name)
 
     partial = "#{function}_partial" |> String.to_atom
     loop = "#{function}_loop" |> String.to_atom
@@ -32,15 +34,11 @@ defmodule Etude.Template do
 
     root = Etude.Children.root(template.children, opts)
 
-    children = template.children
-    |> Etude.Children.compile(opts)
-    |> Dict.values
-
-    {function, [
     """
     #{file_line(template, opts)}
-    -module(#{escape(name)}).
-    #{version(template.vsn)}
+    -module(#{escape(template.name)}).
+    -vsn(#{template.version}).
+
     #{native(Keyword.get(opts, :native, false))}
 
     -export([#{function}/2, #{function}/3, #{partial}/5]).
@@ -85,7 +83,7 @@ defmodule Etude.Template do
 
     etude_inspect(Val) ->
       'Elixir.Kernel':inspect(Val).
-    """ | children]}
+    """
   end
 
   defp wait_block(name, timeout, loop) do
@@ -112,7 +110,4 @@ defmodule Etude.Template do
   defp native(_) do
     ""
   end
-
-  def version(nil), do: ""
-  def version(vsn), do: "-vsn(#{vsn})."
 end

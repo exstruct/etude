@@ -43,8 +43,7 @@ defimpl Etude.Node, for: Any do
     name(id, opts)
   end
   def name(node, opts) do
-    prefix = Keyword.get(opts, :prefix)
-    "#{prefix}_#{:erlang.phash2(node)}"
+    "#{opts[:main]}_#{:erlang.phash2(node)}"
     |> String.to_atom
   end
 

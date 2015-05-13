@@ -50,12 +50,10 @@ defmodule Etude.Node.Assign do
     resolve(name, opts)
   end
   def resolve(nil, opts) do
-    prefix = Keyword.get(opts, :prefix)
-    "#{prefix}_var_nil" |> String.to_atom
+    "#{opts[:main]}_var_nil" |> String.to_atom
   end
   def resolve(name, opts) when is_atom(name) do
-    prefix = Keyword.get(opts, :prefix)
-    "#{prefix}_var_#{name}"
+    "#{opts[:main]}_var_#{name}"
     |> String.slice(0..254)
     |> String.to_atom
   end
