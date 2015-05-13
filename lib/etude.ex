@@ -38,7 +38,7 @@ defmodule Etude do
   defp init_template(name, children, opts) do
     children = transform_children(children, opts)
     %Template{name: name,
-              version: :erlang.phash2({@vsn, children}),
+              version: :erlang.phash2({System.version, @vsn, children}),
               children: children}
   end
 
