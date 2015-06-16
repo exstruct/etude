@@ -93,6 +93,8 @@ defmodule Etude.Template do
         Out = {#{ready}, WaitVal},
         #{memo_put('ID', 'Out', 'call')},
         #{name}(Count, #{op_args});
+      {error, Error, {Ref, ID}} when is_reference(Ref) ->
+        throw({Error, #{state}});
       {'DOWN', _Ref, process, _Pid, normal} ->
         #{name}(Count, #{op_args})
     after #{timeout} ->

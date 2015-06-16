@@ -90,7 +90,11 @@ defmodule Etude.Node.Call do
           {ok, Val, NewState} ->
             Out = {#{ready}, Val},
             #{memo_put('_ID', 'Out', 'call')},
-            {Out, NewState}
+            {Out, NewState};
+          {error, Error} ->
+            throw({Error, #{state}});
+          {error, Error, NewState} ->
+            throw({Error, NewState})
         end;
       Ref when is_reference(Ref) ->
         pending

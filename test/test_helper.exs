@@ -47,6 +47,10 @@ defmodule EtudeTestHelper do
       end
     end
 
+    outV = Macro.var(:out, nil)
+    resV = Macro.var(:res, nil)
+    stateV = Macro.var(:state, nil)
+
     quote do
       unquote(module)
       if Mix.env == :bench do
@@ -56,11 +60,23 @@ defmodule EtudeTestHelper do
       else
         test unquote(name) do
           ref = :erlang.make_ref()
-          {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
-          unquote(assertion_block)
-          ## memoized test
-          {unquote(Macro.var(:res, nil)), unquote(Macro.var(:state, nil))} = unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
-          unquote(assertion_block)
+
+          unquote(outV) = try do
+            unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
+          catch
+            {error, state2} ->
+              {{:error, error}, state2}
+          end
+
+          case unquote(outV) do
+            {unquote(resV) = {:error, _}, unquote(stateV)} ->
+              unquote(assertion_block)
+            {unquote(resV), unquote(stateV)} ->
+              unquote(assertion_block)
+              ## memoized test
+              {unquote(resV), unquote(stateV)} = unquote(mod).unquote(main)(unquote(stateV), unquote(resolve), ref)
+              unquote(assertion_block)
+          end
         end
       end
     end
@@ -90,6 +106,15 @@ defmodule EtudeTestHelper do
   end
   def resolve(:math, :zero, _, _, _, _, _) do
     {:ok, 0}
+  end
+  def resolve(:errors, :immediate, _, _, _, _, _) do
+    {:error, :immediate}
+  end
+  def resolve(:errors, :async, _, _, parent, ref, _) do
+    {:ok, spawn(fn ->
+      :timer.sleep(10)
+      send(parent, {:error, :async, ref})
+    end)}
   end
   def resolve(_, _, _, _, _, _, _) do
     {:ok, nil}
