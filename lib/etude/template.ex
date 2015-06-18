@@ -25,7 +25,7 @@ defmodule Etude.Template do
 
   defp main_block(template, opts) do
     function = opts[:main]
-    timeout = Keyword.get(opts, :timeout, 5000)
+    timeout = Keyword.get(opts, :timeout, 10_000)
 
     partial = "#{function}_partial" |> String.to_atom
     loop = "#{function}_loop" |> String.to_atom
