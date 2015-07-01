@@ -15,8 +15,6 @@ defmodule EtudeTestHelper do
     |> Enum.join(".")
     |> String.to_atom
 
-    [{main, _}|_] = functions
-
     assertion_block = format_assertion_block(assertion)
 
     resolve = &__MODULE__.resolve/7
@@ -37,19 +35,15 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Prop
         alias Etude.Node.Var
 
-        unquote_splicing do
-          for {name, ast} <- functions do
-            quote do
-              defetude unquote(name), unquote(ast), unquote(opts)
-            end
-          end
-        end
+        defetude unquote(functions), unquote(opts)
       end
     end
 
     outV = Macro.var(:out, nil)
     resV = Macro.var(:res, nil)
     stateV = Macro.var(:state, nil)
+
+    [{main, _}|_] = functions
 
     quote do
       unquote(module)

@@ -231,7 +231,7 @@ defmodule EtudeTest.QC do
     mod = quote do
       defmodule unquote(name) do
         use Etude
-        defetude unquote(main), unquote(Macro.escape(x))
+        defetude unquote([{main, Macro.escape(x)}])
         # unquote_splicing do
         #   for {name, ast} <- functions do
         #     quote do

@@ -16,37 +16,53 @@ defmodule Etude.Template do
   end
 
   def compile(template, opts \\ []) do
-
-    [main_block(template, opts),
-     template.children
-     |> Etude.Children.compile(opts)
-     |> Dict.values]
+    [head(template, opts),
+     Enum.map(template.children, &(main_block(&1, opts))),
+     Enum.reduce(template.children, %{}, fn({_, children}, acc) ->
+      children
+      |> Etude.Children.compile(opts)
+      |> Dict.merge(acc)
+     end) |> Dict.values]
   end
 
-  defp main_block(template, opts) do
-    function = opts[:main]
-    timeout = Keyword.get(opts, :timeout, 10_000)
-
-    partial = "#{function}_partial" |> String.to_atom
-    loop = "#{function}_loop" |> String.to_atom
-    wait = "#{function}_wait" |> String.to_atom
-    immediate = "#{function}_wait_immediate" |> String.to_atom
-
-    root = Etude.Children.root(template.children, opts)
-
+  defp head(template, opts) do
     """
     #{file_line(template, opts)}
     -module(#{escape(template.name)}).
     -vsn(#{template.version}).
 
+    #{exports(template, opts)}
+
     #{native(Keyword.get(opts, :native, false))}
 
-    -export([#{function}/2, #{function}/3, #{partial}/5]).
+    etude_inspect(Val) ->
+      'Elixir.Kernel':inspect(Val).
+    """
+  end
 
-    #{function}(State, Resolve) ->
-      #{function}(State, Resolve, erlang:make_ref()).
-    #{file_line(template, opts)}
-    #{function}(State, Resolve, Req) ->
+  defp exports(template, _opts) do
+    Enum.map(template.children, fn({name, _ast}) ->
+      partial = "#{name}_partial" |> String.to_atom |> escape
+      name = name |> to_string |> String.to_atom |> escape
+      "-export([#{name}/2, #{name}/3, #{partial}/5]).\n"
+    end)
+  end
+
+  defp main_block({name, children}, opts) do
+    timeout = Keyword.get(opts, :timeout, 10_000)
+
+    partial = "#{name}_partial" |> String.to_atom |> escape
+    loop = "#{name}_loop" |> String.to_atom |> escape
+    wait = "#{name}_wait" |> String.to_atom |> escape
+    immediate = "#{name}_wait_immediate" |> String.to_atom |> escape
+    name = name |> to_string |> String.to_atom |> escape
+
+    root = Etude.Children.root(children, opts)
+
+    """
+    #{name}(State, Resolve) ->
+      #{name}(State, Resolve, erlang:make_ref()).
+    #{name}(State, Resolve, Req) ->
       #{debug(escape("init"), opts)},
       #{loop}(0, State, Resolve, Req, {0, 0}).
 
@@ -80,9 +96,6 @@ defmodule Etude.Template do
     #{immediate}(Count, #{op_args}) ->
       #{debug('[<<"wait[immediate] (">>, etude_inspect(Count), <<")">>]', opts)},
     #{indent(wait_block(immediate, 0, "#{loop}(Count, #{op_args})"), 1)}.
-
-    etude_inspect(Val) ->
-      'Elixir.Kernel':inspect(Val).
     """
   end
 

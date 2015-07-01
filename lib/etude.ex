@@ -35,8 +35,16 @@ defmodule Etude do
     |> Keyword.put_new(:name, name)
   end
 
-  defp init_template(name, children, opts) do
-    children = transform_children(children, opts)
+  defp init_template(mod, [{name, _} | _] = children, opts) when is_atom(name) do
+    opts = Keyword.put_new(opts, :main, name)
+    create_template(mod, children, opts)
+  end
+
+  defp create_template(name, children, opts) do
+    children = children
+    |> Enum.map(fn({name, nodes}) ->
+      {name, transform_children(nodes, opts)}
+    end)
     %Template{name: name,
               version: :erlang.phash2({System.version, @vsn, children}),
               children: children}

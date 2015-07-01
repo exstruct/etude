@@ -49,11 +49,12 @@ defmodule Etude.Node.Assign do
   def resolve(%Etude.Node.Var{name: name}, opts) do
     resolve(name, opts)
   end
-  def resolve(nil, opts) do
-    "#{opts[:main]}_var_nil" |> String.to_atom
+  def resolve(nil, _opts) do
+    :etude_var_nil
   end
-  def resolve(name, opts) when is_atom(name) do
-    "#{opts[:main]}_var_#{name}"
+  def resolve(name, _opts) when is_atom(name) do
+    "etude_var_#{name}"
+    |> String.replace(" ", "__")
     |> String.slice(0..254)
     |> String.to_atom
   end
