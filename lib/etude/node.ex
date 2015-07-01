@@ -42,7 +42,7 @@ defimpl Etude.Node, for: Any do
     |> List.keysort(0)
     name(id, opts)
   end
-  def name(node, opts) do
+  def name(node, _opts) do
     "etude_#{:erlang.phash2(node)}"
     |> String.to_atom
   end

@@ -25,4 +25,31 @@ defmodule EtudeTest.Block do
       }
     ]
   ], {:parent, :child}
+
+  etudetest "should use vars outside of blocks", [
+    render: [
+      %Assign{
+        expression: true, line: nil,
+        name: :action
+      },
+      %Cond{
+        arms: [
+          %Block{
+            children: [
+              %Var{
+                line: nil,
+                name: :action
+              }
+            ],
+            line: nil, side_effects: true
+          },
+        ],
+        expression: %Var{
+          line: nil,
+          name: :action
+        },
+        line: nil
+      }
+    ]
+  ], true
 end

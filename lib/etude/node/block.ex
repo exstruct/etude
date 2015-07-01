@@ -6,7 +6,6 @@ defmodule Etude.Node.Block do
   defimpl Etude.Node, for: Etude.Node.Block do
     defdelegate name(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
-    defdelegate var(node, opts), to: Etude.Node.Any
 
     def assign(node, opts) do
       last(node) |> Etude.Node.assign(opts)
@@ -26,6 +25,10 @@ defmodule Etude.Node.Block do
 
     def compile(node, opts) do
       Etude.Children.compile(node.children, opts)
+    end
+
+    def var(node, opts) do
+      last(node) |> Etude.Node.var(opts)
     end
 
     defp last(node) do
