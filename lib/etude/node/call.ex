@@ -29,6 +29,8 @@ defmodule Etude.Node.Call do
       arguments = node.arguments
       exec = "#{name}_exec" |> String.to_atom
 
+      etude_module = opts[:name] |> escape
+
       native = Etude.Utils.get_bin_or_atom(node.attrs, :native, false)
 
       defop node, opts, [:memoize], """
@@ -40,6 +42,12 @@ defmodule Etude.Node.Call do
         pending ->
           #{debug('<<"#{name} call pending">>', opts)},
           {nil, #{state}};
+        {partial, {PartialModule, PartialFunction, PartialProps} = Partial, rebind(#{state})} ->
+          rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
+          PartialModule:PartialFunction(#{op_args}, PartialProps);
+        {partial, {PartialFunction, PartialProps} = Partial, rebind(#{state})} when is_atom(PartialFunction) ->
+          rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
+          #{etude_module}:PartialFunction(#{op_args}, PartialProps);
         CallRes ->
           #{debug_res(name, "element(1, CallRes)", "call", opts)},
           CallRes
@@ -76,9 +84,22 @@ defmodule Etude.Node.Call do
       """
     end
 
+    defp exec_block(mod, fun, _arguments, :hybrid, attrs, _opts) do
+      """
+        case #{mod}:#{fun}(_Args, #{state}, self(), {erlang:make_ref(), _ID}, #{escape(attrs)}) of
+      #{exec_block_handle}
+      """
+    end
+
     defp exec_block(mod, fun, _arguments, _, attrs, _opts) do
       """
         case #{resolve}(#{mod}, #{fun}, _Args, #{state}, self(), {erlang:make_ref(), _ID}, #{escape(attrs)}) of
+      #{exec_block_handle}
+      """
+    end
+
+    defp exec_block_handle do
+      """
           {ok, Pid} when is_pid(Pid) ->
             Ref = erlang:monitor(process, Pid),
             #{memo_put('_ID', 'Ref', 'call')},
@@ -91,6 +112,13 @@ defmodule Etude.Node.Call do
             Out = {#{ready}, Val},
             #{memo_put('_ID', 'Out', 'call')},
             {Out, NewState};
+          {partial, Partial} = PartialRes ->
+            #{memo_put('_ID', 'PartialRes', 'call')},
+            {partial, Partial, #{state}};
+          {partial, Partial, NewState} ->
+            Out = {partial, Partial},
+            #{memo_put('_ID', 'Out', 'call')},
+            {partial, Partial, NewState};
           {error, Error} ->
             throw({Error, #{state}});
           {error, Error, NewState} ->

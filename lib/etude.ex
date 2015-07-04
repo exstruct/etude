@@ -54,6 +54,9 @@ defmodule Etude do
     Template.compile(template, opts)
   end
 
+  defp transform_children(%Etude.Node.Block{children: children}, opts) do
+    transform_children(children, opts)
+  end
   defp transform_children(children, opts) do
     children
     |> Etude.Passes.Scopes.transform(opts)

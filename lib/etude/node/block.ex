@@ -16,7 +16,7 @@ defmodule Etude.Node.Block do
     end
 
     def children(node) do
-      node.children
+      node.children || []
     end
 
     def set_children(node, children) do
