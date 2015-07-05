@@ -59,3 +59,9 @@ defmodule Etude.Node.Assign do
     |> String.to_atom
   end
 end
+
+defimpl Inspect, for: Etude.Node.Assign do
+  def inspect(node, _) do
+    "#Var<#{node.name}> = #{inspect(node.expression)}"
+  end
+end

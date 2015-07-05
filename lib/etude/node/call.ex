@@ -43,9 +43,11 @@ defmodule Etude.Node.Call do
           #{debug('<<"#{name} call pending">>', opts)},
           {nil, #{state}};
         {partial, {PartialModule, PartialFunction, PartialProps} = Partial, rebind(#{state})} ->
+          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
           PartialModule:PartialFunction(#{op_args}, PartialProps);
         {partial, {PartialFunction, PartialProps} = Partial, rebind(#{state})} when is_atom(PartialFunction) ->
+          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
           #{etude_module}:PartialFunction(#{op_args}, PartialProps);
         CallRes ->
@@ -128,5 +130,12 @@ defmodule Etude.Node.Call do
         pending
       """
     end
+  end
+end
+
+defimpl Inspect, for: Etude.Node.Call do
+  def inspect(node, _) do
+    arguments = Enum.map(node.arguments, &inspect/1) |> Enum.join(", ")
+    "#{node.module}.#{node.function}(#{arguments})"
   end
 end

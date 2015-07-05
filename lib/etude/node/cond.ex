@@ -62,3 +62,22 @@ defmodule Etude.Node.Cond do
     end
   end
 end
+
+defimpl Inspect, for: Etude.Node.Cond do
+  def inspect(%{expression: expression, arms: [arm1]}, _) do
+    """
+    if #{inspect(expression)} do
+      #{inspect(arm1)}
+    end
+    """
+  end
+  def inspect(%{expression: expression, arms: [arm1, arm2]}, _) do
+    """
+    if #{inspect(expression)} do
+      #{inspect(arm1)}
+    else
+      #{inspect(arm2)}
+    end
+    """
+  end
+end

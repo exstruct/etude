@@ -19,3 +19,9 @@ defmodule Etude.Node.Var do
     end
   end
 end
+
+defimpl Inspect, for: Etude.Node.Var do
+  def inspect(node, _) do
+    "#Var<#{node.name}>"
+  end
+end

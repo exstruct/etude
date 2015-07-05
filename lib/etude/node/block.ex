@@ -36,3 +36,17 @@ defmodule Etude.Node.Block do
     end
   end
 end
+
+defimpl Inspect, for: Etude.Node.Block do
+  def inspect(node, _) do
+    out = Enum.map(node.children, &(&1 |> inspect |> indent)) |> Enum.join("\n")
+    "\n#{out}"
+  end
+
+  def indent(str) do
+    str
+    |> String.split("\n")
+    |> Enum.map(&("  #{&1}"))
+    |> Enum.join("\n")
+  end
+end

@@ -67,7 +67,7 @@ defmodule Etude.Utils do
 
   def debug(code, opts) do
     if opts[:debug] do
-      ~s{io:put_chars([<<"DEBUG | ">>, <<" #{opts[:module]} :: ">>, #{code}, <<"\\n">>])}
+      ~s{io:put_chars([<<"DEBUG | ">>, <<" #{opts[:name]} :: ">>, #{code}, <<"\\n">>])}
     else
       "false"
     end

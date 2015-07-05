@@ -43,3 +43,9 @@ defmodule Etude.Node.Prop do
     "element(1, #{Etude.Vars.scope})"
   end
 end
+
+defimpl Inspect, for: Etude.Node.Prop do
+  def inspect(node, _) do
+    "$#{node.name}"
+  end
+end
