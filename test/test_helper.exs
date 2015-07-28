@@ -104,6 +104,12 @@ defmodule EtudeTestHelper do
   def resolve(:test, :partial_wo_state, [module, fun, props], _, _, _, _) do
     {:partial, {module, fun, props}}
   end
+  def resolve(:test, :async, [value], _, parent, ref, _) do
+    {:ok, spawn(fn ->
+      :timer.sleep(10)
+      send(parent, {:ok, value, ref})
+    end)}
+  end
   def resolve(:bool, val, _, _, _, _, _) do
     {:ok, val}
   end

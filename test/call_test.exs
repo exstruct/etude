@@ -84,6 +84,28 @@ defmodule EtudeTest.Call do
     ]
   ], 1
 
+  etudetest "should call a returned local partial with async", [
+    render: [
+      %Call{
+        module: :test,
+        function: :partial_wo_state,
+        arguments: [
+          :foo_partial,
+          %{}
+        ]
+      }
+    ],
+    foo: [
+      %Call{
+        module: :test,
+        function: :async,
+        arguments: [
+          1
+        ]
+      }
+    ]
+  ], 1
+
   etudetest "should call a returned remove partial", [
     render: [
       %Call{

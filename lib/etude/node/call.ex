@@ -42,25 +42,17 @@ defmodule Etude.Node.Call do
         pending ->
           #{debug('<<"#{name} call pending">>', opts)},
           {nil, #{state}};
-        {partial, {PartialModule, PartialFunction, PartialProps} = Partial} ->
-          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
-          rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
-          PartialModule:PartialFunction(#{op_args}, PartialProps);
         {partial, {PartialModule, PartialFunction, PartialProps} = Partial, rebind(#{state})} ->
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
           PartialModule:PartialFunction(#{op_args}, PartialProps);
-        {partial, {PartialFunction, PartialProps}} when is_atom(PartialFunction) ->
-          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
-          rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
-          #{etude_module}:PartialFunction(#{op_args}, PartialProps);
         {partial, {PartialFunction, PartialProps}, rebind(#{state})} when is_atom(PartialFunction) ->
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
           #{etude_module}:PartialFunction(#{op_args}, PartialProps);
-        CallRes ->
-          #{debug_res(name, "element(1, CallRes)", "call", opts)},
-          CallRes
+        {ok, Value, rebind(#{state})} ->
+          #{debug_res(name, "Value", "call", opts)},
+          {Value, #{state}}
       end
       """, Dict.put(Children.compile(arguments, opts), exec, compile_exec(exec, native, node, opts))
     end
@@ -78,8 +70,10 @@ defmodule Etude.Node.Call do
           undefined ->
             #{debug_call(node.module, node.function, "_Args", opts)},
       #{indent(exec_block(mod, fun, arguments, native, node.attrs, opts), 2)};
+          {partial, Partial} ->
+            {partial, Partial, #{state}};
           Val ->
-            {Val, #{state}}
+            {ok, Val, #{state}}
         end;
       #{name}(#{Children.wildcard(arguments, opts, ", ")}#{op_args}) ->
         nil.
@@ -90,7 +84,7 @@ defmodule Etude.Node.Call do
       """
         Val = {#{ready}, #{mod}:#{fun}(#{Children.vars(arguments, opts)})},
         #{memo_put('_ID', 'Val', 'call')},
-        {Val, #{state}}
+        {ok, Val, #{state}}
       """
     end
 
@@ -117,11 +111,11 @@ defmodule Etude.Node.Call do
           {ok, Val} ->
             Out = {#{ready}, Val},
             #{memo_put('_ID', 'Out', 'call')},
-            {Out, #{state}};
+            {ok, Out, #{state}};
           {ok, Val, NewState} ->
             Out = {#{ready}, Val},
             #{memo_put('_ID', 'Out', 'call')},
-            {Out, NewState};
+            {ok, Out, NewState};
           {partial, Partial} = PartialRes ->
             #{memo_put('_ID', 'PartialRes', 'call')},
             {partial, Partial, #{state}};
