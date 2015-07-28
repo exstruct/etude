@@ -92,6 +92,18 @@ defmodule EtudeTestHelper do
   def resolve(:test, :passthrough_and_modify, [a], state, _, _, _) do
     {:ok, {a, state}, [1, state]}
   end
+  def resolve(:test, :partial, [fun, props], state, _, _, _) do
+    {:partial, {fun, props}, state}
+  end
+  def resolve(:test, :partial, [module, fun, props], state, _, _, _) do
+    {:partial, {module, fun, props}, state}
+  end
+  def resolve(:test, :partial_wo_state, [fun, props], _, _, _, _) do
+    {:partial, {fun, props}}
+  end
+  def resolve(:test, :partial_wo_state, [module, fun, props], _, _, _, _) do
+    {:partial, {module, fun, props}}
+  end
   def resolve(:bool, val, _, _, _, _, _) do
     {:ok, val}
   end

@@ -52,4 +52,70 @@ defmodule EtudeTest.Call do
     ]
   ], 18
 
+  etudetest "should call a returned local partial", [
+    render: [
+      %Call{
+        module: :test,
+        function: :partial,
+        arguments: [
+          :foo_partial,
+          %{}
+        ]
+      }
+    ],
+    foo: [
+      1
+    ]
+  ], 1
+
+  etudetest "should call a returned local partial without state", [
+    render: [
+      %Call{
+        module: :test,
+        function: :partial_wo_state,
+        arguments: [
+          :foo_partial,
+          %{}
+        ]
+      }
+    ],
+    foo: [
+      1
+    ]
+  ], 1
+
+  etudetest "should call a returned remove partial", [
+    render: [
+      %Call{
+        module: :test,
+        function: :partial,
+        arguments: [
+          __MODULE__,
+          :foo_partial,
+          %{}
+        ]
+      }
+    ],
+    foo: [
+      1
+    ]
+  ], 1
+
+  etudetest "should call a returned remove partial without state", [
+    render: [
+      %Call{
+        module: :test,
+        function: :partial_wo_state,
+        arguments: [
+          __MODULE__,
+          :foo_partial,
+          %{}
+        ]
+      }
+    ],
+    foo: [
+      1
+    ]
+  ], 1
+
 end

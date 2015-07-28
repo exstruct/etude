@@ -42,11 +42,19 @@ defmodule Etude.Node.Call do
         pending ->
           #{debug('<<"#{name} call pending">>', opts)},
           {nil, #{state}};
+        {partial, {PartialModule, PartialFunction, PartialProps} = Partial} ->
+          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
+          rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
+          PartialModule:PartialFunction(#{op_args}, PartialProps);
         {partial, {PartialModule, PartialFunction, PartialProps} = Partial, rebind(#{state})} ->
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
           PartialModule:PartialFunction(#{op_args}, PartialProps);
-        {partial, {PartialFunction, PartialProps} = Partial, rebind(#{state})} when is_atom(PartialFunction) ->
+        {partial, {PartialFunction, PartialProps}} when is_atom(PartialFunction) ->
+          rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
+          rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
+          #{etude_module}:PartialFunction(#{op_args}, PartialProps);
+        {partial, {PartialFunction, PartialProps}, rebind(#{state})} when is_atom(PartialFunction) ->
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
           rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
           #{etude_module}:PartialFunction(#{op_args}, PartialProps);
