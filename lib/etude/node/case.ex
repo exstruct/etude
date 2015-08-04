@@ -67,8 +67,10 @@ defmodule Etude.Node.Case do
     def children(node) do
       [node.expression,
         %Etude.Node.Block{
+          side_effects: false,
           children: Enum.map(node.clauses, fn({pattern, guard, body}) ->
             %Etude.Node.Block{
+              side_effects: false,
               children: [
                 pattern,
                 guard,
@@ -81,7 +83,8 @@ defmodule Etude.Node.Case do
     end
 
     def set_children(node, [expression, %{children: clauses}]) do
-      clauses = for %{children: [pattern, guard, body]} <- clauses do
+      clauses = for clause <- clauses do
+        %{children: [pattern, guard, body]} = clause
         {pattern, guard, body}
       end
       %{node | expression: expression, clauses: clauses}
