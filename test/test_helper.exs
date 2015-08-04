@@ -28,6 +28,7 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Assign
         alias Etude.Node.Block
         alias Etude.Node.Call
+        alias Etude.Node.Case
         alias Etude.Node.Collection
         alias Etude.Node.Comprehension
         alias Etude.Node.Cond
