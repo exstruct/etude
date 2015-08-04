@@ -34,4 +34,15 @@ defmodule EtudeTest.Case do
     ]
   ], [4,5]
 
+  etudetest "should support wildcard matches", [
+    render: [
+      %Case{
+        expression: [1,2,3],
+        clauses: [
+          {[1,2,%Var.Wildcard{}], nil, "wildcard"}
+        ]
+      }
+    ]
+  ], "wildcard"
+
 end
