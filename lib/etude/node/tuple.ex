@@ -3,6 +3,7 @@ defimpl Etude.Node, for: Tuple do
   defdelegate call(node, opts), to: Etude.Node.Any
   defdelegate compile(node, opts), to: Etude.Node.Collection
   defdelegate name(node, opts), to: Etude.Node.Any
+  defdelegate pattern(node, opts), to: Etude.Node.Collection
   defdelegate prop(node, opts), to: Etude.Node.Any
   defdelegate var(node, opts), to: Etude.Node.Any
 
@@ -18,5 +19,13 @@ end
 defimpl Etude.Node.Collection.Construction, for: Tuple do
   def construct(_node, vars) do
     "{#{vars}}"
+  end
+
+  def match(_node, value, opts) do
+    Etude.Node.pattern(value, opts)
+  end
+
+  def pattern(_node, value) do
+    "{#{value}}"
   end
 end

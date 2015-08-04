@@ -6,6 +6,7 @@ defmodule Etude.Node.Block do
   defimpl Etude.Node, for: Etude.Node.Block do
     defdelegate name(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
+    defdelegate pattern(node, opts), to: Etude.Node.Any
 
     def assign(node, opts) do
       last(node) |> Etude.Node.assign(opts)

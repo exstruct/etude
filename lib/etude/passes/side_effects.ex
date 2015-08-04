@@ -7,13 +7,23 @@ defmodule Etude.Passes.SideEffects do
   end
 
   defp recurse(node) do
-    children = Enum.map(Node.children(node), fn
+    children = children_map(Node.children(node))
+    Node.set_children(node, children)
+  end
+
+  def children_map(children) when is_tuple(children) do
+    children
+    |> Tuple.to_list
+    |> children_map
+    |> :erlang.list_to_tuple
+  end
+  def children_map(children) do
+    Enum.map(children, fn
       (%Node.Block{side_effects: true} = child) ->
         %{child | children: inline(child.children, [], [])}
       (child) ->
         recurse(child)
     end)
-    Node.set_children(node, children)
   end
 
   defp inline([], assigns, _) do

@@ -56,8 +56,16 @@ defmodule Etude.Passes.Scopes do
   end
 
   defp recurse(node, scope, opts) do
-    {children, scope} = Enum.map_reduce(Node.children(node), scope, &(visit(&1, &2, opts)))
+    {children, scope} = map_reduce_children(Node.children(node), scope, opts)
     {Node.set_children(node, children), scope}
+  end
+
+  def map_reduce_children(children, scope, opts) when is_tuple(children) do
+    {children, scope} = map_reduce_children(Tuple.to_list(children), scope, opts)
+    {:erlang.list_to_tuple(children), scope}
+  end
+  def map_reduce_children(children, scope, opts) do
+    Enum.map_reduce(children, scope, &(visit(&1, &2, opts)))
   end
 
   defp update_name(node, %{phase: :scan}, _opts) do

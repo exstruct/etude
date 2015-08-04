@@ -6,6 +6,7 @@ defprotocol Etude.Node do
   def children(node)
   def compile(node, opts)
   def name(node, opts)
+  def pattern(node, opts)
   def prop(node, opts)
   def set_children(node, children)
   def var(node, opts)
@@ -45,6 +46,13 @@ defimpl Etude.Node, for: Any do
   def name(node, _opts) do
     "etude_#{:erlang.phash2(node)}"
     |> String.to_atom
+  end
+
+  def pattern(%{__struct__: struct}, _opts) do
+    throw "#{struct} in patterns not supported "
+  end
+  def pattern(node, _opts) do
+    throw "patterns not implemented for #{inspect(node)}"
   end
 
   def prop(node, opts) do

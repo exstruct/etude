@@ -20,6 +20,7 @@ defmodule Etude.Node.Cond do
   defimpl Etude.Node, for: Etude.Node.Cond do
     defdelegate assign(node, opts), to: Etude.Node.Any
     defdelegate call(node, opts), to: Etude.Node.Any
+    defdelegate pattern(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 

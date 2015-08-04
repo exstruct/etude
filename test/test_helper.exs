@@ -31,6 +31,7 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Case
         alias Etude.Node.Collection
         alias Etude.Node.Comprehension
+        alias Etude.Node.Cons
         alias Etude.Node.Cond
         alias Etude.Node.Partial
         alias Etude.Node.Prop

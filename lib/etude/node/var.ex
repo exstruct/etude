@@ -3,9 +3,9 @@ defmodule Etude.Node.Var do
             line: nil
 
   import Etude.Vars
+  import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Var do
-    defdelegate assign(node, opts), to: Etude.Node.Any
     defdelegate children(node), to: Etude.Node.Any
     defdelegate set_children(node, children), to: Etude.Node.Any
     defdelegate compile(node, opts), to: Etude.Node.Any
@@ -13,9 +13,23 @@ defmodule Etude.Node.Var do
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 
+    def assign(node, opts) do
+      var = Etude.Node.var(node, opts)
+      if opts[:var] == :local do
+        target = Etude.Node.Assign.resolve(node, opts)
+        "#{var} = {#{ready}, _val_#{target}}"
+      else
+        "{#{var}, rebind(#{state})} = #{Etude.Node.call(node, opts)}"
+      end
+    end
+
     def call(node, opts) do
       target = Etude.Node.Assign.resolve(node, opts)
       "#{target}(#{op_args})"
+    end
+
+    def pattern(_node, _opts) do
+      throw "Variable matching is not implemented yet"
     end
   end
 end

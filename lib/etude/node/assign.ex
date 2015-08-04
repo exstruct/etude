@@ -25,6 +25,10 @@ defmodule Etude.Node.Assign do
       [node.expression]
     end
 
+    def pattern(node, opts) do
+      Etude.Node.var(node, opts)
+    end
+
     def set_children(node, [expression]) do
       %{node | expression: expression}
     end

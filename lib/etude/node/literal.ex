@@ -16,6 +16,10 @@ defmodule Etude.Node.Literal.Impl do
         "{#{Etude.Utils.ready}, #{Etude.Utils.escape(value)}}"
       end
 
+      def pattern(value, _opts) do
+        Etude.Utils.escape(value)
+      end
+
       def prop(node, opts) do
         call(node, opts)
       end

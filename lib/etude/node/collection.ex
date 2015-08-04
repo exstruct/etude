@@ -4,7 +4,9 @@ defmodule Etude.Node.Collection do
   import Etude.Utils
 
   defprotocol Construction do
-    def construct(node, vars)  
+    def construct(node, vars)
+    def match(node, value, opts)
+    def pattern(node, collection)
   end
 
   def compile(node, opts) do
@@ -47,5 +49,13 @@ defmodule Etude.Node.Collection do
       {#{ready},
     #{indent(construction, 2)}}#{ending}
     """
+  end
+
+  def pattern(node, opts) do
+    collection = Children.map(node, fn(value) ->
+      Construction.match(node, value, opts)
+    end)
+    |> Enum.join(", ")
+    Construction.pattern(node, collection)
   end
 end

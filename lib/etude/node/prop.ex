@@ -10,6 +10,7 @@ defmodule Etude.Node.Prop do
     defdelegate children(node), to: Etude.Node.Any
     defdelegate set_children(node, children), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
+    defdelegate pattern(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 

@@ -96,4 +96,12 @@ defmodule Etude.Children do
   def wildcard(children, _opts, ending) do
     Utils.wildcard(children) <> ending
   end
+
+  def map(children, fun) when is_tuple(children) do
+    Tuple.to_list(children)
+    |> map(fun)
+  end
+  def map(children, fun) do
+    Enum.map(children, fun)
+  end
 end

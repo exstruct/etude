@@ -13,6 +13,7 @@ defmodule Etude.Node.Call do
     defdelegate assign(node, opts), to: Etude.Node.Any
     defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
+    defdelegate pattern(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 

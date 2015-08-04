@@ -3,6 +3,7 @@ defimpl Etude.Node, for: Map do
   defdelegate call(node, opts), to: Etude.Node.Any
   defdelegate compile(node, opts), to: Etude.Node.Collection
   defdelegate name(node, opts), to: Etude.Node.Any
+  defdelegate pattern(node, opts), to: Etude.Node.Collection
   defdelegate prop(node, opts), to: Etude.Node.Any
   defdelegate var(node, opts), to: Etude.Node.Any
 
@@ -27,5 +28,13 @@ defimpl Etude.Node.Collection.Construction, for: Map do
         maps:put(Key, Value, Acc)
     end, \#{}, [#{vars}])
     """
+  end
+
+  def match(_node, {key, value}, opts) do
+    "#{Etude.Utils.escape(key)} := #{Etude.Node.pattern(value, opts)}"
+  end
+
+  def pattern(_node, matches) do
+    "\#{#{matches}}"
   end
 end

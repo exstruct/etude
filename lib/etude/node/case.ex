@@ -11,6 +11,7 @@ defmodule Etude.Node.Case do
     defdelegate assign(node, opts), to: Etude.Node.Any
     defdelegate call(node, opts), to: Etude.Node.Any
     defdelegate name(node, opts), to: Etude.Node.Any
+    defdelegate pattern(node, opts), to: Etude.Node.Any
     defdelegate prop(node, opts), to: Etude.Node.Any
     defdelegate var(node, opts), to: Etude.Node.Any
 
@@ -18,6 +19,10 @@ defmodule Etude.Node.Case do
       expression = [node.expression]
       name = Etude.Node.name(node, opts)
       exec = "#{name}_exec" |> String.to_atom
+
+      clause_bodies = Enum.map(node.clauses, fn({_, _, body}) ->
+        body
+      end)
 
       defop node, opts, [:memoize], """
       #{Children.call(expression, opts)},
@@ -27,7 +32,7 @@ defmodule Etude.Node.Case do
         Res ->
           Res
       end
-      """, Dict.put(Etude.Children.compile([expression], opts), exec, compile_exec(exec, node, opts))
+      """, Dict.put(Etude.Children.compile([expression | clause_bodies], opts), exec, compile_exec(exec, node, opts))
     end
 
     defp compile_exec(name, node, opts) do
@@ -44,19 +49,42 @@ defmodule Etude.Node.Case do
       """
     end
 
-    def compile_clause({_whens, _pattern, _body}, _node, _opts) do
+    defp compile_clause({pattern, guard, body}, _node, opts) do
       """
-          %% TODO
-          _ -> {{#{ready}, 'TODO'}, #{state}}
+          #{Etude.Node.pattern(pattern, opts)} #{compile_guard(guard, opts)} ->
+            #{Etude.Node.assign(body, [{:var, :local} | opts])},
+            {#{Etude.Node.var(body, opts)}, #{state}}
       """
+    end
+
+    defp compile_guard(guard, _opts) when guard in [nil, []] do
+      ""
+    end
+    defp compile_guard(_guard, _opts) do
+      throw "Guard in case not implemented"
     end
 
     def children(node) do
-      [node.expression]
+      [node.expression,
+        %Etude.Node.Block{
+          children: Enum.map(node.clauses, fn({pattern, guard, body}) ->
+            %Etude.Node.Block{
+              children: [
+                pattern,
+                guard,
+                body
+              ]
+            }
+          end)
+        }
+      ]
     end
 
-    def set_children(node, [expression]) do
-      %{node | expression: expression}
+    def set_children(node, [expression, %{children: clauses}]) do
+      clauses = for %{children: [pattern, guard, body]} <- clauses do
+        {pattern, guard, body}
+      end
+      %{node | expression: expression, clauses: clauses}
     end
   end
 end
