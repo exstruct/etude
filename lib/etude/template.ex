@@ -64,7 +64,15 @@ defmodule Etude.Template do
       #{name}(State, Resolve, erlang:make_ref()).
     #{name}(State, Resolve, Req) ->
       #{debug(escape("init"), opts)},
-      #{loop}(0, State, Resolve, Req, {0, 0}).
+      try
+        #{loop}(0, State, Resolve, Req, {0, 0})
+      catch
+        error:{'__ETUDE_ERROR__', Error, rebind(#{state})} ->
+          erlang:raise(error, \#{'__struct__' => 'Elixir.Etude.Exception',
+                                 '__exception__' => true,
+                                 state => #{state},
+                                 error => Error}, erlang:get_stacktrace())
+      end.
 
     #{partial}(#{op_args}, Props) ->
       #{debug(escape("init partial"), opts)},
@@ -107,7 +115,9 @@ defmodule Etude.Template do
         #{memo_put('ID', 'Out', 'call')},
         #{name}(Count, #{op_args});
       {error, Error, {Ref, ID}} when is_reference(Ref) ->
-        throw({Error, #{state}});
+        Out = {'__ETUDE_ERROR__', Error},
+        #{memo_put('ID', 'Out', 'call')},
+        #{name}(Count, #{op_args});
       {'DOWN', _Ref, process, _Pid, normal} ->
         #{name}(Count, #{op_args})
     after #{timeout} ->

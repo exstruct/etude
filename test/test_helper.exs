@@ -35,6 +35,7 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Cond
         alias Etude.Node.Partial
         alias Etude.Node.Prop
+        alias Etude.Node.Try
         alias Etude.Node.Var
 
         defetude unquote(functions), unquote(opts)
@@ -59,9 +60,9 @@ defmodule EtudeTestHelper do
 
           unquote(outV) = try do
             unquote(mod).unquote(main)(unquote(state), unquote(resolve), ref)
-          catch
-            {error, state2} ->
-              {{:error, error}, state2}
+          rescue
+            e in Etude.Exception ->
+              {{:error, e.error}, e.state}
           end
 
           case unquote(outV) do

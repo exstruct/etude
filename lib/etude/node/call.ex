@@ -73,6 +73,8 @@ defmodule Etude.Node.Call do
       #{indent(exec_block(mod, fun, arguments, native, node.attrs, opts), 2)};
           {partial, Partial} ->
             {partial, Partial, #{state}};
+          {'__ETUDE_ERROR__', Error} ->
+            erlang:error({'__ETUDE_ERROR__', Error, #{state}});
           Val ->
             {ok, Val, #{state}}
         end;
@@ -125,9 +127,9 @@ defmodule Etude.Node.Call do
             #{memo_put('_ID', 'Out', 'call')},
             {partial, Partial, NewState};
           {error, Error} ->
-            throw({Error, #{state}});
+            erlang:error({'__ETUDE_ERROR__', Error, #{state}});
           {error, Error, NewState} ->
-            throw({Error, NewState})
+            erlang:error({'__ETUDE_ERROR__', Error, NewState})
         end;
       Ref when is_reference(Ref) ->
         pending
