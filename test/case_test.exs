@@ -12,6 +12,20 @@ defmodule EtudeTest.Case do
     ]
   ], 3
 
+  etudetest "should support assign variables correctly", [
+    render: [
+      %Case{
+        expression: {1, 1},
+        clauses: [
+          {{%Assign{name: :a}, %Assign{name: :b}}, nil, %Call{module: :erlang,
+                                                              attrs: %{native: true},
+                                                              function: :+,
+                                                              arguments: [%Var{name: :a}, %Var{name: :b}]}}
+        ]
+      }
+    ]
+  ], 2
+
   etudetest "should support pattern matching in case statements", [
     render: [
       %Case{

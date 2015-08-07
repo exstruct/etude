@@ -20,8 +20,12 @@ defmodule Etude.Node.Case do
       name = Etude.Node.name(node, opts)
       exec = "#{name}_exec" |> String.to_atom
 
-      clause_bodies = Enum.map(node.clauses, fn({_, _, body}) ->
+      children = Enum.map(node.clauses, fn({_, _, body}) ->
         body
+      end)
+
+      children = Enum.reduce(node.clauses, children, fn({pattern, _, _}, acc) ->
+        Etude.Pattern.extract_vars(pattern, opts) ++ acc
       end)
 
       defop node, opts, [:memoize], """
@@ -32,7 +36,7 @@ defmodule Etude.Node.Case do
         Res ->
           Res
       end
-      """, Dict.put(Etude.Children.compile([expression | clause_bodies], opts), exec, compile_exec(exec, node, opts))
+      """, Dict.put(Etude.Children.compile([expression | children], opts), exec, compile_exec(exec, node, opts))
     end
 
     defp compile_exec(name, node, opts) do
@@ -52,7 +56,8 @@ defmodule Etude.Node.Case do
     defp compile_clause({pattern, guard, body}, _node, opts) do
       """
           #{Etude.Node.pattern(pattern, opts)} #{compile_guard(guard, opts)} ->
-            #{Etude.Node.assign(body, [{:var, :local} | opts])},
+            #{Etude.Pattern.store_vars(pattern, opts)},
+            #{Etude.Node.assign(body, opts)},
             {#{Etude.Node.var(body, opts)}, #{state}}
       """
     end

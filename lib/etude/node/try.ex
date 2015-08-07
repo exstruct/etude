@@ -17,8 +17,12 @@ defimpl Etude.Node, for: Etude.Node.Try do
 
   def compile(node, opts) do
     expression = [node.expression]
-    clause_bodies = Enum.map(node.clauses, fn({_, _, _, body}) ->
+    children = Enum.map(node.clauses, fn({_, _, _, body}) ->
       body
+    end)
+
+    children = Enum.reduce(node.clauses, children, fn({_, pattern, _, _}, acc) ->
+      Etude.Pattern.extract_vars(pattern, opts) ++ acc
     end)
 
     clauses = Enum.map(node.clauses, &(compile_clause(&1, node, opts))) |> Enum.join(";\n")
@@ -29,12 +33,14 @@ defimpl Etude.Node, for: Etude.Node.Try do
     catch
     #{clauses}
     end
-    """, Etude.Children.compile([expression | clause_bodies], opts)
+    """, Etude.Children.compile([expression | children], opts)
   end
 
   defp compile_clause({:error, pattern, guard, body}, _node, opts) do
+    vars = Etude.Pattern.store_vars(pattern, opts)
     """
         error:{'__ETUDE_ERROR__', #{Etude.Node.pattern(pattern, opts)}, rebind(#{state})} #{compile_guard(guard, opts)} ->
+          #{vars},
           #{Etude.Node.assign(body, [{:var, :local} | opts])},
           {#{Etude.Node.var(body, opts)}, #{state}};
         error:#{Etude.Node.pattern(pattern, opts)} #{compile_guard(guard, opts)} ->
@@ -43,8 +49,10 @@ defimpl Etude.Node, for: Etude.Node.Try do
     """
   end
   defp compile_clause({type, pattern, guard, body}, _node, opts) do
+    vars = Etude.Pattern.store_vars(pattern, opts)
     """
         #{type || "_"}:#{Etude.Node.pattern(pattern, opts)} #{compile_guard(guard, opts)} ->
+          #{vars},
           #{Etude.Node.assign(body, [{:var, :local} | opts])},
           {#{Etude.Node.var(body, opts)}, #{state}}
     """

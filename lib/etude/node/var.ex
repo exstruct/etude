@@ -3,7 +3,6 @@ defmodule Etude.Node.Var do
             line: nil
 
   import Etude.Vars
-  import Etude.Utils
 
   defimpl Etude.Node, for: Etude.Node.Var do
     defdelegate children(node), to: Etude.Node.Any
@@ -15,12 +14,7 @@ defmodule Etude.Node.Var do
 
     def assign(node, opts) do
       var = Etude.Node.var(node, opts)
-      if opts[:var] == :local do
-        target = Etude.Node.Assign.resolve(node, opts)
-        "#{var} = {#{ready}, _val_#{target}}"
-      else
-        "{#{var}, rebind(#{state})} = #{Etude.Node.call(node, opts)}"
-      end
+      "{#{var}, rebind(#{state})} = #{Etude.Node.call(node, opts)}"
     end
 
     def call(node, opts) do
