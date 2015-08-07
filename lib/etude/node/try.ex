@@ -16,7 +16,7 @@ defimpl Etude.Node, for: Etude.Node.Try do
   defdelegate var(node, opts), to: Etude.Node.Any
 
   def compile(node, opts) do
-    expression = [node.expression]
+    expression = node.expression
     children = Enum.map(node.clauses, fn({_, _, _, body}) ->
       body
     end)
