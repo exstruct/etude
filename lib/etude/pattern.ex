@@ -1,7 +1,5 @@
 defmodule Etude.Pattern do
   alias Etude.Node
-  alias Etude.Utils
-  alias Etude.Vars
 
   def extract_vars(pattern, _opts \\ []) do
     recurse(%Node.Block{children: [pattern]}, [])
