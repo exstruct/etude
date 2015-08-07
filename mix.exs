@@ -3,7 +3,7 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "0.3.0",
+     version: "0.3.1",
      elixir: "~> 1.0",
      description: "parallel computation coordination compiler for erlang/elixir",
      deps: deps,
