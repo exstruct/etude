@@ -337,12 +337,37 @@ for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
       {:ok, Dict.delete(dict, key), dict}
     end
 
-    def fetch(dict, key, _op_ref) do
-      case unquote(impl).fetch(dict, key) do
-        {:ok, value} ->
-          {:ok, value, dict}
-        :error ->
-          {:error, dict}
+    if impl == Dict do
+      def fetch(dict, key, _op_ref) do
+        case Dict.fetch(dict, key) do
+          {:ok, value} ->
+            {:ok, value, dict}
+          :error ->
+            {:error, dict}
+        end
+      rescue
+        e in UndefinedFunctionError ->
+          struct = Map.get(dict, :__struct__)
+          case e do
+            %{arity: 2, function: :fetch, module: ^struct} ->
+              case Map.fetch(dict, key) do
+                {:ok, value} ->
+                  {:ok, value, dict}
+                :error ->
+                  {:error, dict}
+              end
+            _ ->
+              reraise e, System.stacktrace()
+          end
+      end
+    else
+      def fetch(dict, key, _op_ref) do
+        case unquote(impl).fetch(dict, key) do
+          {:ok, value} ->
+            {:ok, value, dict}
+          :error ->
+            {:error, dict}
+        end
       end
     end
 
