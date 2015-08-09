@@ -103,7 +103,7 @@ defimpl Etude.Node, for: Etude.Node.Dict do
   end
 
   # read-only
-  defp compile_clause(function) when function in [:get, :has_key?, :keys, :size, :to_list, :values] do
+  defp compile_clause(function) when function in [:fetch!, :get, :has_key?, :keys, :size, :to_list, :values] do
     """
     {ok, Value, Fetched} ->
       #{memo_put('_CacheKey', 'Fetched', 'dict')},
