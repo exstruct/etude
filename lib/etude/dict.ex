@@ -33,6 +33,9 @@ defprotocol Etude.Dict do
   @spec fetch(t, key, op_ref) :: {:ok, value, t} | {:error, t} | thunk | error
   def fetch(dict, key, op_ref)
 
+  @spec fetch!(t, key, op_ref) :: {:ok, value, t} | no_return | thunk | error
+  def fetch!(dict, key, op_ref)
+
   @spec has_key?(t, key, op_ref) :: {:ok, boolean, t} | thunk | error
   def has_key?(dict, key, op_ref)
 
@@ -122,6 +125,15 @@ defprotocol Etude.Dict do
         case {size(dict1, op_ref), Etude.Dict.size(dict2, op_ref)} do
           {{:ok, s, dict1}, {:ok, s, dict2}} ->
             # TODO
+        end
+      end
+
+      def fetch!(dict, key, op_ref) do
+        case fetch(dict, key, op_ref) do
+          {:error, dict} ->
+            {:error, %KeyError{key: key, term: dict}, dict}
+          other ->
+            other
         end
       end
 
@@ -282,6 +294,7 @@ defprotocol Etude.Dict do
                      delete: 3,
                      # drop: 3,
                      equal?: 3,
+                     fetch!: 3,
                      get: 3,
                      get: 4,
                      has_key?: 3,
