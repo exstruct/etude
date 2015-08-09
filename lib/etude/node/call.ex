@@ -93,14 +93,14 @@ defmodule Etude.Node.Call do
 
     defp exec_block(mod, fun, _arguments, :hybrid, attrs, _opts) do
       """
-        case #{mod}:#{fun}(_Args, #{state}, self(), {erlang:make_ref(), _ID}, #{escape(attrs)}) of
+        case #{mod}:#{fun}(_Args, #{state}, self(), {erlang:make_ref(), _ID, call}, #{escape(attrs)}) of
       #{exec_block_handle}
       """
     end
 
     defp exec_block(mod, fun, _arguments, _, attrs, _opts) do
       """
-        case #{resolve}(#{mod}, #{fun}, _Args, #{state}, self(), {erlang:make_ref(), _ID}, #{escape(attrs)}) of
+        case #{resolve}(#{mod}, #{fun}, _Args, #{state}, self(), {erlang:make_ref(), _ID, call}, #{escape(attrs)}) of
       #{exec_block_handle}
       """
     end
@@ -110,6 +110,7 @@ defmodule Etude.Node.Call do
           {ok, Pid} when is_pid(Pid) ->
             Ref = erlang:monitor(process, Pid),
             #{memo_put('_ID', 'Ref', 'call')},
+            put(Ref, {_ID, call}),
             pending;
           {ok, Val} ->
             Out = {#{ready}, Val},

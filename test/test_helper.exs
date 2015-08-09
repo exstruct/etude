@@ -1,3 +1,28 @@
+"test/fixtures/**/*.ex"
+|> Path.wildcard()
+|> Enum.map(&Code.require_file/1)
+
+defmodule EtudeTestHelper.Random do
+  def start_link(seed) do
+    Agent.start_link(fn ->
+      :random.seed({0, 0, seed})
+      seed
+    end, name: __MODULE__)
+  end
+
+  def uniform(num) do
+    Agent.get(__MODULE__, fn _ ->
+      :random.seed(:random.seed())
+      :random.uniform(num)
+    end)
+  end
+
+  def sleep(min, max) do
+    amount = uniform(max - min) + min
+    :timer.sleep(amount)
+  end
+end
+
 defmodule EtudeTestHelper do
   defmacro __using__(_) do
     quote do
@@ -20,7 +45,8 @@ defmodule EtudeTestHelper do
     resolve = &__MODULE__.resolve/7
 
     opts = [file: __CALLER__.file,
-            native: Mix.env == :bench]
+            native: Mix.env == :bench,
+            timeout: 1000]
 
     module = quote do
       defmodule unquote(mod) do
@@ -33,6 +59,7 @@ defmodule EtudeTestHelper do
         alias Etude.Node.Comprehension
         alias Etude.Node.Cons
         alias Etude.Node.Cond
+        alias Etude.Node.Dict
         alias Etude.Node.Partial
         alias Etude.Node.Prop
         alias Etude.Node.Try
@@ -81,14 +108,14 @@ defmodule EtudeTestHelper do
 
   def format_assertion_block([do: block]) do
     quote do
-      assert unquote(Macro.var(:state, nil)) != nil
+      assert nil != unquote(Macro.var(:state, nil))
       unquote(block)
     end
   end
   def format_assertion_block(assertion) do
     quote do
-      assert unquote(Macro.var(:res, nil)) == unquote(assertion)
-      assert unquote(Macro.var(:state, nil)) != nil
+      assert unquote(assertion) == unquote(Macro.var(:res, nil))
+      assert nil != unquote(Macro.var(:state, nil))
     end
   end
 
@@ -127,16 +154,22 @@ defmodule EtudeTestHelper do
   end
   def resolve(:errors, :async, _, _, parent, ref, _) do
     {:ok, spawn(fn ->
-      :timer.sleep(10)
+      EtudeTestHelper.Random.sleep(10, 50)
       send(parent, {:error, :async, ref})
     end)}
+  end
+  def resolve(:lazy, :user, [id], _, _, _, _) do
+    {:ok, %Etude.Fixtures.User{id: id}}
   end
   def resolve(_, _, _, _, _, _, _) do
     {:ok, nil}
   end
 end
 
-ExUnit.start()
+seed = ExUnit.configuration()[:seed] || :erlang.phash2(:crypto.rand_bytes(20))
+EtudeTestHelper.Random.start_link(seed)
+ExUnit.start([seed: seed])
+
 if Mix.env == :bench do
   Benchfella.start(mem_stats: :include_sys)
 end

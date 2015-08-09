@@ -6,20 +6,23 @@ defprotocol Etude.Dict do
   @type error :: {:error, any, t}
   @type thunk :: {:pending, t} | {:pending, pid, t}
   @type double_thunk :: {:pending, t, t} | {:pending, nil, t, nil, t}
-  @type op_ref :: Etude.Dict.OpRef
+  @type op_ref :: Etude.Async
   @type t :: list | map
+
+  @spec apply_op(t, term) :: t
+  def apply_op(dict, op)
 
   @spec cache_key(t) :: term
   def cache_key(dict)
 
-  @spec delete(t, key, op_ref) :: {:ok, t} | thunk | error
+  @spec delete(t, key, op_ref) :: {:ok, t, t} | thunk | error
   def delete(dict, key, op_ref)
 
-  @spec drop(t, Enum.t, op_ref) :: {:ok, t} | thunk | error
-  def drop(dict, enum, op_ref)
+  # @spec drop(t, Enum.t, op_ref) :: {:ok, t, t} | thunk | error
+  # def drop(dict, enum, op_ref)
 
   @spec equal?(t, t, op_ref) :: {:ok, boolean, t, t} | double_thunk | {:error, error, t, t}
-  def equal?(dict, t, op_ref)
+  def equal?(dict1, dict2, op_ref)
 
   @spec get(t, key, op_ref) :: {:ok, value, t} | thunk | error
   def get(dict, key, op_ref)
@@ -39,22 +42,22 @@ defprotocol Etude.Dict do
   @spec load(t, op_ref) :: {:ok, t} | thunk | error
   def load(dict, op_ref)
 
-  @spec merge(t, t, op_ref) :: {:ok, t} | thunk | error
+  @spec merge(t, t, op_ref) :: {:ok, t, t, t} | thunk | error
   def merge(dict1, dict2, op_ref)
 
-  @spec merge(t, t, op_ref, (key, value, value -> value)) :: {:ok, t} | thunk | error
+  @spec merge(t, t, op_ref, (key, value, value -> value)) :: {:ok, t, t, t} | thunk | error
   def merge(dict1, dict2, op_ref, mapper)
 
-  @spec pop(t, key, op_ref) :: {:ok, value, t} | thunk | error
+  @spec pop(t, key, op_ref) :: {:ok, value, t, t} | thunk | error
   def pop(dict, key, op_ref)
 
-  @spec pop(t, key, op_ref, value) :: {:ok, value, t} | thunk | error
+  @spec pop(t, key, op_ref, value) :: {:ok, value, t, t} | thunk | error
   def pop(dict, key, op_ref, value)
 
-  @spec put(t, key, value, op_ref) :: {:ok, t} | thunk | error
+  @spec put(t, key, value, op_ref) :: {:ok, t, t} | thunk | error
   def put(dict, key, value, op_ref)
 
-  @spec put_new(t, key, value, op_ref) :: {:ok, t} | thunk | error
+  @spec put_new(t, key, value, op_ref) :: {:ok, t, t} | thunk | error
   def put_new(dict, key, value, op_ref)
 
   @spec reduce(t, Enumerable.acc, function, op_ref) :: {:done, term, t} | {:halted, term, t} | thunk | error
@@ -63,10 +66,10 @@ defprotocol Etude.Dict do
   @spec size(t, op_ref) :: {:ok, non_neg_integer, t} | thunk | error
   def size(dict, op_ref)
 
-  @spec to_list(t, op_ref) :: {:ok, list} | thunk | error
+  @spec to_list(t, op_ref) :: {:ok, list, t} | thunk | error
   def to_list(dict, op_ref)
 
-  @spec update(t, key, value, (value -> value), op_ref) :: {:ok, t} | thunk | error
+  @spec update(t, key, value, (value -> value), op_ref) :: {:ok, t, t} | thunk | error
   def update(dict, key, value, mapper, op_ref)
 
   @spec values(t, op_ref) :: {:ok, [value], t} | thunk | error
@@ -76,21 +79,40 @@ defprotocol Etude.Dict do
     quote do
       @behaviour Etude.Dict
 
-      def drop(dict, keys, op_ref) do
-        try do
-          {:ok, Enum.reduce(keys, dict, fn(key, dict) ->
-            case delete(dict, key, op_ref) do
-              {:ok, dict} ->
-                dict
-              other ->
-                throw dict
-            end
-          end)}
-        catch
-          other ->
-            other
+      def apply_op(dict, op) do
+        Map.merge(dict, op)
+      end
+
+      def cache_key(%{__struct__: struct} = dict) do
+        {struct, :erlang.phash2(dict)}
+      end
+
+      def delete(dict, key, op_ref) do
+        case fetch(dict, key, op_ref) do
+          {:error, dict} ->
+            {:ok, dict, dict}
+          {:ok, _, dict} ->
+            {:ok, Dict.delete(dict, key), dict}
         end
       end
+
+      ## TODO this is pretty tricky to get it to return the previous "un-mutated" value
+      ## let's worry about it later
+      # def drop(dict, keys, op_ref) do
+      #   try do
+      #     {:ok, Enum.reduce(keys, dict, fn(key, dict) ->
+      #       case delete(dict, key, op_ref) do
+      #         {:ok, dict} ->
+      #           dict
+      #         other ->
+      #           throw dict
+      #       end
+      #     end), dict}
+      #   catch
+      #     other ->
+      #       other
+      #   end
+      # end
 
       def equal?(dict1, dict2, op_ref) do
         :erlang.raise :error, :equal_not_implemented, System.stacktrace
@@ -105,14 +127,10 @@ defprotocol Etude.Dict do
 
       def get(dict, key, op_ref, default \\ nil) do
         case fetch(dict, key, op_ref) do
-          {:ok, value_or_pid, dict} ->
-            {:ok, value_or_pid, dict}
-          {:pending, t} ->
-            {:pending, t}
           {:error, dict} ->
             {:ok, default, dict}
-          {:error, error, dict} ->
-            {:error, error, dict}
+          other ->
+            other
         end
       end
 
@@ -140,6 +158,10 @@ defprotocol Etude.Dict do
         end
       end
 
+      def load(dict, _op_ref) do
+        {:ok, dict}
+      end
+
       def merge(t, t, op_ref) do
         :erlang.raise :error, :merge_not_implemented, System.stacktrace
       end
@@ -150,12 +172,19 @@ defprotocol Etude.Dict do
 
       def pop(dict, key, op_ref, default \\ nil) do
         case fetch(dict, key, op_ref) do
-          {:ok, pid, dict} when is_pid(pid) ->
-            {:ok, pid, dict}
           {:ok, value, dict} ->
-            {:ok, value, delete(dict, key, op_ref)}
+            {:ok, value, delete(dict, key, op_ref), dict}
           {:error, dict} ->
-            {:ok, default, dict}
+            {:ok, default, dict, dict}
+          other ->
+            other
+        end
+      end
+
+      def put(dict, key, value, op_ref) do
+        case get(dict, key, op_ref) do
+          {:ok, _, dict} ->
+            {:ok, Dict.put(dict, key, value), dict}
           other ->
             other
         end
@@ -166,7 +195,7 @@ defprotocol Etude.Dict do
           {:ok, false, dict} ->
             put(dict, key, value, op_ref)
           {:ok, true, dict} ->
-            {:ok, dict}
+            {:ok, dict, dict}
           other ->
             other
         end
@@ -201,6 +230,10 @@ defprotocol Etude.Dict do
           {:halted, {acc, dict}} ->
             {:halted, acc, dict}
         end
+      end
+
+      def size(dict, _op_ref) do
+        {:ok, Dict.size(dict), dict}
       end
 
       def to_list(dict, op_ref) do
@@ -244,18 +277,24 @@ defprotocol Etude.Dict do
         end
       end
 
-      defoverridable drop: 3,
+      defoverridable apply_op: 2,
+                     cache_key: 1,
+                     delete: 3,
+                     # drop: 3,
                      equal?: 3,
                      get: 3,
                      get: 4,
                      has_key?: 3,
                      keys: 2,
+                     load: 2,
                      merge: 3,
                      merge: 4,
                      pop: 3,
                      pop: 4,
+                     put: 4,
                      put_new: 4,
                      reduce: 4,
+                     size: 2,
                      to_list: 2,
                      update: 5,
                      values: 2
@@ -267,6 +306,10 @@ for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
   defimpl Etude.Dict, for: type do
     use Etude.Dict
 
+    def apply_op(dict, op) do
+      unquote(impl).merge(dict, op)
+    end
+
     def cache_key(dict) do
       {unquote(if impl == Dict do
         quote do
@@ -277,13 +320,8 @@ for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
       end), :erlang.phash2(dict)}
     end
 
-    def delete(dict, key, op_ref) do
-      case fetch(dict, key, op_ref) do
-        {:error, dict} ->
-          {:ok, dict}
-        {:ok, _, dict} ->
-          {:ok, unquote(impl).delete(dict, key)}
-      end
+    def delete(dict, key, _op_ref) do
+      {:ok, Dict.delete(dict, key), dict}
     end
 
     def fetch(dict, key, _op_ref) do
@@ -295,12 +333,8 @@ for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
       end
     end
 
-    def load(dict, _op_ref) do
-      {:ok, dict}
-    end
-
     def put(dict, key, value, _op_ref) do
-      {:ok, unquote(impl).put(dict, key, value)}
+      {:ok, unquote(impl).put(dict, key, value), dict}
     end
 
     def size(dict, _op_ref) do

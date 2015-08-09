@@ -76,6 +76,9 @@ defmodule Etude.Utils do
   def memo_get(key, s \\ scope) do
     "get({#{req}, #{s}, #{key}})"
   end
+  def memo_delete(key, s \\ scope) do
+    "erase({#{req}, #{s}, #{key}})"
+  end
   def memo_put(key, value, s \\ scope) do
     "put({#{req}, #{s}, #{key}}, #{value})"
   end

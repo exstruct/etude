@@ -110,15 +110,39 @@ defmodule Etude.Template do
   defp wait_block(name, timeout, loop) do
     """
     receive
-      {ok, WaitVal, {Ref, ID}} when is_reference(Ref) ->
+      {ok, WaitVal, {Ref, ID, call}} when is_reference(Ref) ->
         Out = {#{ready}, WaitVal},
         #{memo_put('ID', 'Out', 'call')},
         #{name}(Count, #{op_args});
-      {error, Error, {Ref, ID}} when is_reference(Ref) ->
+      {ok, Operation, {Ref, ID, CacheKey, dict}} when is_reference(Ref) ->
+        AppliedDict = 'Elixir.Etude.Dict':apply_op(#{memo_get('CacheKey', 'dict')}, Operation),
+        #{memo_put('CacheKey', 'AppliedDict', 'dict')},
+        #{memo_delete('ID', 'dict')},
+        #{name}(Count, #{op_args});
+      {error, Error, {Ref, ID, call}} when is_reference(Ref) ->
         Out = {'__ETUDE_ERROR__', Error},
         #{memo_put('ID', 'Out', 'call')},
         #{name}(Count, #{op_args});
+      {error, Error, Operation, {Ref, ID, CacheKey, dict}} when is_reference(Ref) ->
+        Out = {'__ETUDE_ERROR__', Error},
+        AppliedDict = 'Elixir.Etude.Dict':apply_op(#{memo_get('CacheKey', 'dict')}, Operation),
+        #{memo_put('CacheKey', 'AppliedDict', 'dict')},
+        #{memo_put('ID', 'Out', 'call')},
+        #{name}(Count, #{op_args});
       {'DOWN', _Ref, process, _Pid, normal} ->
+        #{name}(Count, #{op_args});
+      {'DOWN', _Ref, process, _Pid, {ErrorType, Stacktrace}} ->
+        {Type, Error} = case ErrorType of
+          {nocatch, E} -> {throw, E};
+          E -> {error, E}
+        end,
+        case get(_Ref) of
+          undefined ->
+            erlang:raise(Type, Error, Stacktrace);
+          {ID, RefScope} ->
+            Out = {'__ETUDE_ERROR__', Error},
+            #{memo_put('ID', 'Out', 'RefScope')}
+        end,
         #{name}(Count, #{op_args})
     after #{timeout} ->
       #{loop}
