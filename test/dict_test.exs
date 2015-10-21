@@ -56,4 +56,35 @@ defmodule Etude.Node.Dict.Test do
     ]
   ], %{id: "1", name: "Robert", email: "robert@example.com", friends: ["Joe", "Mike"]}
 
+
+  etudetest "should support the 'load' functions", [
+    render: [
+      %Assign{
+        name: :user,
+        expression: %Call{
+          module: :lazy,
+          function: :user,
+          arguments: ["1"]
+        }
+      },
+      %Call{
+        module: :test,
+        function: :identity,
+        arguments: [
+          %Dict{
+            function: :load,
+            arguments: [
+              %Var{name: :user}
+            ]
+          }
+        ]
+      }
+    ]
+  ], %Etude.Fixtures.User{
+    __status__: :fetched,
+    email: "robert@example.com",
+    friends: :unfetched,
+    id: "1",
+    name: "Robert"
+  }
 end

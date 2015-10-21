@@ -7,6 +7,10 @@ defmodule Etude.Fixtures.User do
 
   # use Dict
 
+  def keys(dict) do
+    [:id, :name, :email]
+  end
+
   def fetch(%{id: id}, :id) do
     {:ok, id}
   end

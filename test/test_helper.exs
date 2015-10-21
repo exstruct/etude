@@ -141,6 +141,9 @@ defmodule EtudeTestHelper do
       send(parent, {:ok, value, ref})
     end)}
   end
+  def resolve(:test, :identity, [value], _, _, _, _) do
+    {:ok, value}
+  end
   def resolve(:bool, val, _, _, _, _, _) do
     {:ok, val}
   end

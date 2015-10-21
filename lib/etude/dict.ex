@@ -45,6 +45,9 @@ defprotocol Etude.Dict do
   @spec load(t, op_ref) :: {:ok, t} | thunk | error
   def load(dict, op_ref)
 
+  @spec load(t, [key], op_ref) :: {:ok, t} | [value] | thunk | error
+  def load(dict, keys, op_ref)
+
   @spec merge(t, t, op_ref) :: {:ok, t, t, t} | thunk | error
   def merge(dict1, dict2, op_ref)
 
@@ -158,20 +161,45 @@ defprotocol Etude.Dict do
       end
 
       def keys(dict, op_ref) do
-        return = reduce(dict, {:cont, []}, fn
-          {k, _}, acc -> {:cont, [k | acc]}
-        end, op_ref)
-
-        case return do
-          {status, acc, dict} when status in [:done, :halted] ->
-            {:ok, :lists.reverse(acc), dict}
-          other ->
-            other
-        end
+        {:ok, Dict.keys(dict), dict}
       end
 
-      def load(dict, _op_ref) do
+      def load(dict, op_ref) do
+        {:ok, keys, dict} = Etude.Dict.keys(dict, op_ref)
+        Etude.Dict.load(dict, keys, op_ref)
+      end
+
+      def load(dict, keys, op_ref) do
+        keys
+        |> Enumerable.reduce({:cont, {dict, []}}, fn(key, {dict, acc}) ->
+          case fetch(dict, key, op_ref) do
+            {:ok, _, dict} ->
+              {:cont, {dict, acc}}
+            {:error, error, dict} ->
+              {:halt, {:error, error, dict}}
+            {:pending, dict} ->
+              acc = if !(:pending in acc), do: [:pending | acc], else: acc
+              {:cont, {dict, acc}}
+            {:pending, pid, dict} ->
+              {:cont, {dict, [pid | acc]}}
+          end
+        end)
+        |> handle_load()
+      end
+
+      defp handle_load({:done, {dict, []}}) do
         {:ok, dict}
+      end
+      defp handle_load({:done, {dict, pids}}) do
+        pid = Enum.reduce(pids, nil, fn
+          (:pending, acc) -> acc
+          (pid, nil) -> pid
+          (_, _) -> :erlang.raise :error, :multiple_load_not_implemented, System.stacktrace
+        end)
+        {:pending, pid, dict}
+      end
+      defp handle_load({:halted, {:error, error, dict}}) do
+        {:error, error, dict}
       end
 
       def merge(t, t, op_ref) do
@@ -216,7 +244,8 @@ defprotocol Etude.Dict do
       def reduce(dict, acc, fun, op_ref) do
         {initial_status, acc} = acc
 
-        return = Enumerable.reduce(dict, {initial_status, {acc, dict}}, fn({key, _}, {acc, dict}) ->
+        dict
+        |> Enumerable.reduce({initial_status, {acc, dict}}, fn({key, _}, {acc, dict}) ->
           case fetch(dict, key, op_ref) do
             {:ok, value, dict} ->
               {status, acc} = fun.({key, value}, acc)
@@ -229,19 +258,23 @@ defprotocol Etude.Dict do
               {:halt, {:pending, pid, dict}}
           end
         end)
+        |> handle_reduce()
+      end
 
-        case return do
-          {:done, {acc, dict}} ->
-            {:done, acc, dict}
-          {:halted, {:pending, dict}} ->
-            {:pending, dict}
-          {:halted, {:pending, pid, dict}} ->
-            {:pending, pid, dict}
-          {:halted, {:error, error, dict}} ->
-            {:error, error, dict}
-          {:halted, {acc, dict}} ->
-            {:halted, acc, dict}
-        end
+      defp handle_reduce({:done, {acc, dict}}) do
+        {:ok, acc, dict}
+      end
+      defp handle_reduce({:halted, {:pending, dict}}) do
+        {:pending, dict}
+      end
+      defp handle_reduce({:halted, {:pending, pid, dict}}) do
+        {:pending, pid, dict}
+      end
+      defp handle_reduce({:halted, {:error, error, dict}}) do
+        {:error, error, dict}
+      end
+      defp handle_reduce({:halted, {acc, dict}}) do
+        {:halted, acc, dict}
       end
 
       def size(dict, _op_ref) do
@@ -300,6 +333,7 @@ defprotocol Etude.Dict do
                      has_key?: 3,
                      keys: 2,
                      load: 2,
+                     load: 3,
                      merge: 3,
                      merge: 4,
                      pop: 3,
