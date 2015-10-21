@@ -172,7 +172,7 @@ defprotocol Etude.Dict do
       def load(dict, keys, op_ref) do
         keys
         |> Enumerable.reduce({:cont, {dict, []}}, fn(key, {dict, acc}) ->
-          case fetch(dict, key, op_ref) do
+          case get(dict, key, op_ref) do
             {:ok, _, dict} ->
               {:cont, {dict, acc}}
             {:error, error, dict} ->
