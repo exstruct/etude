@@ -29,7 +29,7 @@ defmodule Etude.Node.Partial do
       fun_a = "#{node.function}_partial" |> String.to_atom
       fun = escape(fun_a)
       props = node.props
-      scope = :erlang.phash2({mod, fun, props})
+      scope = Etude.Runtime.hash({mod, fun, props})
 
       defop node, opts, [:memoize], """
       _Props = #{Children.props(props, opts)},

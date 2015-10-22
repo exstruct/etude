@@ -90,7 +90,7 @@ defprotocol Etude.Dict do
       end
 
       def cache_key(%{__struct__: struct} = dict) do
-        {struct, :erlang.phash2(dict)}
+        {struct, Etude.Runtime.hash(dict)}
       end
 
       def delete(dict, key, op_ref) do
@@ -364,7 +364,7 @@ for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
         end
       else
         impl
-      end), :erlang.phash2(dict)}
+      end), Etude.Runtime.hash(dict)}
     end
 
     def delete(dict, key, _op_ref) do

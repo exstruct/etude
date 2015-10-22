@@ -21,7 +21,7 @@ defmodule Etude.Dict.Mutation do
 
   def operation_id(dict, function, arguments) do
     cache_key = Etude.Dict.cache_key(dict)
-    :erlang.phash2({cache_key, function, arguments})
+    Etude.Runtime.hash({cache_key, function, arguments})
   end
 
   ## Dict interface
@@ -57,7 +57,7 @@ defimpl Etude.Dict, for: Etude.Dict.Mutation do
   use Etude.Dict
 
   def cache_key(%{operations: operations, dict: dict}) do
-    {__MODULE__, :erlang.phash2(operations), Etude.Dict.cache_key(dict)}
+    {__MODULE__, Etude.Runtime.hash(operations), Etude.Dict.cache_key(dict)}
   end
 
   def delete(prev = %{dict: dict, operations: operations}, key, op_ref) do

@@ -43,7 +43,7 @@ defmodule Etude.Passes.Scopes do
     {node, scope}
   end
   defp visit(%Node.Block{} = node, scope, opts) do
-    id = :erlang.phash2([scope.id, node])
+    id = Etude.Runtime.hash([scope.id, node])
     {node, child_scope} = recurse(node, %{scope | id: id, phase: :scan}, opts)
     {node, _} = recurse(node, %{child_scope | phase: :update}, opts)
     {node, scope}
@@ -81,6 +81,6 @@ defmodule Etude.Passes.Scopes do
   end
 
   defp format_name(info) do
-    info |> :erlang.phash2 |> to_string |> String.to_atom
+    info |> Etude.Runtime.hash |> to_string |> String.to_atom
   end
 end

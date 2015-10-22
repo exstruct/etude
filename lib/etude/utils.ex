@@ -100,10 +100,10 @@ defmodule Etude.Utils do
   end
 
   def compile_mfa_hash(mod, fun, [], _) do
-    :erlang.phash2({mod, fun, []})
+    Etude.Runtime.hash({mod, fun, []})
   end
   def compile_mfa_hash(mod, fun, _, args) do
-    "erlang:phash2({#{mod}, #{fun}, #{args}})"
+    "'Elixir.Etude.Runtime':hash({#{mod}, #{fun}, #{args}})"
   end
 
   def wildcard(n) when is_integer(n) do

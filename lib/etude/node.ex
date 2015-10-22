@@ -44,7 +44,7 @@ defimpl Etude.Node, for: Any do
     name(id, opts)
   end
   def name(node, _opts) do
-    "etude_#{:erlang.phash2(node)}"
+    "etude_#{Etude.Runtime.hash(node)}"
     |> String.to_atom
   end
 

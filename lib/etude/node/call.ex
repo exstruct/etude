@@ -45,11 +45,12 @@ defmodule Etude.Node.Call do
           {nil, #{state}};
         {partial, {PartialModule, PartialFunction, PartialProps} = Partial, rebind(#{state})} ->
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
-          rebind(#{scope}) = {erlang:phash2({#{scope}, Partial}), 0},
+          rebind(#{scope}) = {'Elixir.Etude.Runtime':hash({#{scope}, Partial}), 0},
           PartialModule:PartialFunction(#{op_args}, PartialProps);
         {partial, {PartialFunction, PartialProps}, rebind(#{state})} when is_atom(PartialFunction) ->
+          Partial = {#{etude_module}, PartialFunction, PartialProps},
           rebind(PartialProps) = 'Elixir.Enum':reduce(PartialProps, \#{}, fun({Key, Value}, Acc) -> maps:put(Key, {#{ready}, Value}, Acc) end),
-          rebind(#{scope}) = {erlang:phash2({#{scope}, {#{etude_module}, PartialFunction, PartialProps}}), 0},
+          rebind(#{scope}) = {'Elixir.Etude.Runtime':hash({#{scope}, Partial}), 0},
           #{etude_module}:PartialFunction(#{op_args}, PartialProps);
         {ok, Value, rebind(#{state})} ->
           #{debug_res(name, "Value", "call", opts)},

@@ -3,7 +3,7 @@ defmodule Etude.DSL do
     file = __CALLER__.file
     {children, _} = Code.eval_quoted(qchildren, __CALLER__.vars, __CALLER__)
 
-    {:ok, mod, _main, bin} = "etude_#{:erlang.phash2(children)}"
+    {:ok, mod, _main, bin} = "etude_#{Etude.Runtime.hash(children)}"
     |> String.to_atom
     |> Etude.compile(children, opts)
 
