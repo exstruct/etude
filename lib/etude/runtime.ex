@@ -26,6 +26,6 @@ defmodule Etude.Runtime do
         other
       end
     _ ->
-      defdelegate hash(value), to: :erlang.phash2
+      defdelegate hash(value), to: :erlang, as: :phash2
   end
 end
