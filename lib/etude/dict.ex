@@ -349,68 +349,101 @@ defprotocol Etude.Dict do
   end
 end
 
-for {type, impl} <- [Map: Map, List: Keyword, Any: Dict] do
-  defimpl Etude.Dict, for: type do
-    use Etude.Dict
+defimpl Etude.Dict, for: Map do
+  use Etude.Dict
 
-    def apply_op(dict, op) do
-      unquote(impl).merge(dict, op)
-    end
+  def apply_op(dict, op) do
+    Map.merge(dict, op)
+  end
 
-    def cache_key(dict) do
-      {unquote(if impl == Dict do
-        quote do
-          Map.get(var!(dict), :__struct__)
-        end
-      else
-        impl
-      end), Etude.Runtime.hash(dict)}
-    end
+  def cache_key(dict) do
+    {Map, Etude.Runtime.hash(dict)}
+  end
 
-    def delete(dict, key, _op_ref) do
-      {:ok, Dict.delete(dict, key), dict}
-    end
+  def delete(dict, key, _op_ref) do
+    {:ok, Map.delete(dict, key), dict}
+  end
 
-    if impl == Dict do
-      def fetch(dict, key, _op_ref) do
-        case Dict.fetch(dict, key) do
-          {:ok, value} ->
-            {:ok, value, dict}
-          :error ->
-            {:error, dict}
-        end
-      rescue
-        e in UndefinedFunctionError ->
-          struct = Map.get(dict, :__struct__)
-          case e do
-            %{arity: 2, function: :fetch, module: ^struct} ->
-              case Map.fetch(dict, key) do
-                {:ok, value} ->
-                  {:ok, value, dict}
-                :error ->
-                  {:error, dict}
-              end
-            _ ->
-              reraise e, System.stacktrace()
-          end
-      end
-    else
-      def fetch(dict, key, _op_ref) do
-        case unquote(impl).fetch(dict, key) do
-          {:ok, value} ->
-            {:ok, value, dict}
-          :error ->
-            {:error, dict}
-        end
-      end
+  def fetch(dict, key, _op_ref) do
+    case Map.fetch(dict, key) do
+      {:ok, value} ->
+        {:ok, value, dict}
+      :error ->
+        {:error, dict}
     end
+  end
 
-    def put(dict, key, value, _op_ref) do
-      {:ok, unquote(impl).put(dict, key, value), dict}
-    end
+  def put(dict, key, value, _op_ref) do
+    {:ok, Map.put(dict, key, value), dict}
+  end
 
-    def size(dict, _op_ref) do
-      {:ok, unquote(impl).size(dict), dict}
+  def size(dict, _op_ref) do
+    {:ok, Map.size(dict), dict}
+  end
+end
+
+defimpl Etude.Dict, for: List do
+  use Etude.Dict
+
+  def apply_op(dict, op) do
+    Keyword.merge(dict, op)
+  end
+
+  def cache_key(dict) do
+    {Keyword, Etude.Runtime.hash(dict)}
+  end
+
+  def delete(dict, key, _op_ref) do
+    {:ok, Keyword.delete(dict, key), dict}
+  end
+
+  def fetch(dict, key, _op_ref) do
+    case Keyword.fetch(dict, key) do
+      {:ok, value} ->
+        {:ok, value, dict}
+      :error ->
+        {:error, dict}
     end
+  end
+
+  def put(dict, key, value, _op_ref) do
+    {:ok, Keyword.put(dict, key, value), dict}
+  end
+
+  def size(dict, _op_ref) do
+    {:ok, Keyword.size(dict), dict}
+  end
+end
+
+defimpl Etude.Dict, for: Any do
+  use Etude.Dict
+
+  def apply_op(dict, op) do
+    Dict.merge(dict, op)
+  end
+
+  def cache_key(dict) do
+    {Map.get(dict, :__struct__), Etude.Runtime.hash(dict)}
+  end
+
+  def delete(dict, key, _op_ref) do
+    {:ok, Dict.delete(dict, key), dict}
+  end
+
+  def fetch(dict, key, _op_ref) do
+    case Dict.fetch(dict, key) do
+      {:ok, value} ->
+        {:ok, value, dict}
+      :error ->
+        {:error, dict}
+    end
+  end
+
+  def put(dict, key, value, _op_ref) do
+    {:ok, Dict.put(dict, key, value), dict}
+  end
+
+  def size(dict, _op_ref) do
+    {:ok, Dict.size(dict), dict}
   end
 end
