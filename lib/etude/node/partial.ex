@@ -26,7 +26,8 @@ defmodule Etude.Node.Partial do
 
     def compile(node, opts) do
       mod = escape(node.module)
-      fun_a = "#{node.function}_partial" |> String.to_atom
+      fun_e = escape(node.function)
+      fun_a = "#{fun_e}_partial" |> String.to_atom
       fun = escape(fun_a)
       props = node.props
       scope = Etude.Runtime.hash({mod, fun, props})
