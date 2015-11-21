@@ -304,6 +304,18 @@ defmodule Etude.Compiler do
     end
   end
 
+  defp handle_node({:apply_partial, meta, [module, function]}, acc) do
+    {%Node.Partial{module: module,
+                   function: function,
+                   line: meta[:line]}, acc}
+  end
+  defp handle_node({:apply_partial, meta, [module, function | [props]]}, acc) do
+    {%Node.Partial{module: module,
+                   function: function,
+                   props: props |> Enum.into(%{}),
+                   line: meta[:line]}, acc}
+  end
+
   # local call (needs to be last)
   defp handle_node({name, meta, args}, acc) when is_atom(name) and is_list(args) do
     Logger.warn """

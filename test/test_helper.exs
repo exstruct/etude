@@ -29,6 +29,20 @@ defmodule EtudeTestHelper do
       use ExUnit.Case, async: false
       use Benchfella
       import EtudeTestHelper
+      alias Etude.Node.Assign
+      alias Etude.Node.Binary
+      alias Etude.Node.Block
+      alias Etude.Node.Call
+      alias Etude.Node.Case
+      alias Etude.Node.Collection
+      alias Etude.Node.Comprehension
+      alias Etude.Node.Cons
+      alias Etude.Node.Cond
+      alias Etude.Node.Dict
+      alias Etude.Node.Partial
+      alias Etude.Node.Prop
+      alias Etude.Node.Try
+      alias Etude.Node.Var
     end
   end
 
@@ -104,6 +118,21 @@ defmodule EtudeTestHelper do
           end
         end
       end
+    end
+  end
+
+  defmacro parse(ast) do
+    quote bind_quoted: [
+      ast: Macro.escape(ast, unquote: true)
+    ] do
+      ast
+      |> Macro.postwalk(fn
+        node = {name, meta, args} ->
+          {name, meta |> Keyword.delete(:line), args}
+        node ->
+          node
+      end)
+      |> Etude.Compiler.elixir_to_etude(nil)
     end
   end
 

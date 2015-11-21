@@ -124,4 +124,81 @@ defmodule EtudeTest.Partial do
       %{network: "twitter", name: "Robert"},
       %{network: "linkedin", name: "Robert"}]
 
+
+  test "apply_partial without arguments" do
+    ast = parse apply_partial(Module, :func)
+
+    assert ast == %Partial{
+      function: :func,
+      module: Module,
+      props: %{}
+    }
+  end
+
+  test "apply_partial with dynamic function" do
+    ast = parse apply_partial(Module, func)
+
+    assert ast == %Partial{
+      function: %Var{name: :func},
+      module: Module,
+      props: %{}
+    }
+  end
+
+  test "apply_partial with dynamic module" do
+    ast = parse apply_partial(module, func)
+
+    assert ast == %Partial{
+      function: %Var{name: :func},
+      module: %Var{name: :module},
+      props: %{}
+    }
+  end
+
+  test "apply_partial with one fixed prop" do
+    ast = parse apply_partial(Module, :func, prop: :value)
+
+    assert ast == %Partial{
+      function: :func,
+      module: Module,
+      props: %{prop: :value}
+    }
+  end
+
+  test "apply_partial with one prop" do
+    ast = parse apply_partial(Module, :func, prop: value)
+
+    assert ast == %Partial{
+      function: :func,
+      module: Module,
+      props: %{prop: %Var{name: :value}}
+    }
+  end
+
+  test "apply_partial with multiple props" do
+    ast = parse apply_partial(Module, :func, [prop1: value1, prop2: value2])
+
+    assert ast == %Partial{
+      function: :func,
+      module: Module,
+      props: %{
+        prop1: %Var{name: :value1},
+        prop2: %Var{name: :value2}
+      }
+    }
+  end
+
+  test "apply_partial with multiple props as last keyword argument" do
+    ast = parse apply_partial(Module, :func, prop1: value1, prop2: value2)
+
+    assert ast == %Partial{
+      function: :func,
+      module: Module,
+      props: %{
+        prop1: %Var{name: :value1},
+        prop2: %Var{name: :value2}
+      }
+    }
+  end
+
 end

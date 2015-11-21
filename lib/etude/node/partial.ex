@@ -2,7 +2,7 @@ defmodule Etude.Node.Partial do
   defstruct module: nil,
             function: nil,
             props: %{},
-            line: 1
+            line: nil
 
   alias Etude.Children
   import Etude.Vars

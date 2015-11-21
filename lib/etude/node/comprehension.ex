@@ -4,7 +4,7 @@ defmodule Etude.Node.Comprehension do
             value: nil,
             expression: nil,
             type: :list,
-            line: 1
+            line: nil
 
   alias Etude.Children
   alias Etude.Node.Comprehension
