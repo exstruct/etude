@@ -33,6 +33,7 @@ defmodule Etude.Utils do
             {nil, _} ->
               MemoRes;
             {MemoVal, _} ->
+              #{debug_res(name, "MemoVal", "not cached", opts)},
               #{memo_put(name, "MemoVal", scope)},
               MemoRes
           end;
