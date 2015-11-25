@@ -7,7 +7,6 @@ defmodule Etude.Mixfile do
      elixir: "~> 1.0",
      description: "parallel computation coordination compiler for erlang/elixir",
      deps: deps,
-     test_coverage: [tool: ExCoveralls],
      package: package,
      aliases: aliases]
   end
@@ -32,7 +31,6 @@ defmodule Etude.Mixfile do
      {:parse_trans, github: "uwiger/parse_trans"},
      {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
-     {:excoveralls, "~> 0.3", only: [:dev, :test]},
      {:benchfella, "~> 0.2.0", only: [:dev, :test, :bench]}]
   end
 
