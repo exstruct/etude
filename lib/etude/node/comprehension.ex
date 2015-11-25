@@ -43,7 +43,7 @@ defmodule Etude.Node.Comprehension do
       #{Children.call([collection], opts)},
       case #{exec}(#{Children.vars([collection], opts, ", ")}#{op_args}) of
         {nil, PendingState} ->
-          #{debug('(<<"#{name} comprehension pending">>', opts)},
+          #{debug('<<"#{name} comprehension pending">>', opts)},
           {nil, PendingState};
         CollRes ->
           #{debug_res(name, "element(1, CollRes)", "comprehension", opts)},

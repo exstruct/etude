@@ -12,6 +12,17 @@ defmodule EtudeTest.Partial do
     ]
   ], %{"name" => "Robert"}
 
+  etudetest "should dynamically call partials", [
+    render: [
+      %Assign{name: :mod, expression: __MODULE__},
+      %Assign{name: :func, expression: :partial},
+      %Partial{module: %Var{name: :mod}, function: %Var{name: :func}}
+    ],
+    partial: [
+      "It works!"
+    ]
+  ], "It works!"
+
   etudetest "should call a partial with a different scope", [
     render: [
       %Assign{name: :foo, expression: "Parent"},
@@ -124,7 +135,6 @@ defmodule EtudeTest.Partial do
       %{network: "twitter", name: "Robert"},
       %{network: "linkedin", name: "Robert"}]
 
-
   test "apply_partial without arguments" do
     ast = parse apply_partial(Module, :func)
 
@@ -200,5 +210,4 @@ defmodule EtudeTest.Partial do
       }
     }
   end
-
 end

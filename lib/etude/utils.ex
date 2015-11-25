@@ -88,8 +88,15 @@ defmodule Etude.Utils do
     debug("[<<\"#{name} #{message} -> \">>, etude_inspect(element(2, #{val})), <<\" (scope \">>, etude_inspect(#{scope}), <<\")\">>]", opts)
   end
 
+  def debug_call(mod, fun, args_var, opts) when is_atom(mod) do
+    debug_call(escape(mod), fun, args_var, opts)
+  end
+  def debug_call(mod, fun, args_var, opts) when is_atom(fun) do
+    debug_call(mod, escape(fun), args_var, opts)
+  end
   def debug_call(mod, fun, args_var, opts) do
-    debug("[<<\"calling #{mod}.#{fun}(\">>, 'Elixir.Enum':join('Elixir.Enum':map(#{args_var}, fun etude_inspect/1), <<\", \">>), <<\")\">>]", opts)
+    str = "[<<\"calling \">>, 'Elixir.String.Chars':to_string(#{mod}), <<\".\">>, 'Elixir.String.Chars':to_string(#{fun}), <<\"(\">>, 'Elixir.Enum':join('Elixir.Enum':map(#{args_var}, fun etude_inspect/1), <<\", \">>), <<\")\">>]"
+    debug(str, opts)
   end
 
   def inline(name, arity) do
