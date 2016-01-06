@@ -4,11 +4,12 @@ defmodule Etude.Mixfile do
   def project do
     [app: :etude,
      version: "0.3.7",
-     elixir: "~> 1.0",
+     elixir: "~> 1.2",
      description: "parallel computation coordination compiler for erlang/elixir",
      deps: deps,
      package: package,
-     aliases: aliases]
+     aliases: aliases,
+     consolidate_protocols: !(Mix.env in [:test, :bench])]
   end
 
   def application do
@@ -24,14 +25,12 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:rebind, "~> 0.1.0"},
+    [{:rebind, "~> 0.1.3"},
      {:lineo, "~> 0.1.0"},
-     # hex doesn't publish github deps. i'd prefer uwiger publish parse_trans.
-     # anyone that uses etude will need to add this manually for now
-     {:parse_trans, github: "uwiger/parse_trans"},
-     {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
+     {:parse_trans, "~> 2.9.0"},
+     {:excheck, "~> 0.3.2", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
-     {:benchfella, "~> 0.2.0", only: [:dev, :test, :bench]}]
+     {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]}]
   end
 
   defp package do
