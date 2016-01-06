@@ -1,4 +1,5 @@
 # there's gotta be a better way
+Application.ensure_all_started(:excheck)
 Code.eval_file("./test/qc_test_helper.exs")
 
 defmodule EtudeTest.QC do

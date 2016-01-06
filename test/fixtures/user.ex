@@ -7,7 +7,7 @@ defmodule Etude.Fixtures.User do
 
   # use Dict
 
-  def keys(dict) do
+  def keys(_dict) do
     [:id, :name, :email]
   end
 
