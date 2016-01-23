@@ -4,8 +4,8 @@ defmodule Etude.Mixfile do
   def project do
     [app: :etude,
      version: "0.4.0",
-     elixir: "~> 1.2",
-     description: "parallel computation coordination compiler for erlang/elixir",
+     elixir: "~> 1.0",
+     description: "parallel computation coordination utilities for erlang/elixir",
      deps: deps,
      package: package,
      aliases: aliases,
@@ -25,10 +25,7 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:rebind, "~> 0.1.3"},
-     {:lineo, "~> 0.1.0"},
-     {:parse_trans, "~> 2.9.0"},
-     {:excheck, "~> 0.3.2", only: [:dev, :test, :bench]},
+    [{:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]}]
   end

@@ -1,71 +1,19 @@
 defmodule Etude do
-  alias Etude.Codegen
-  alias Etude.Template
-
   @vsn Mix.Project.config[:version]
 
-  defmacro __using__(_) do
-    quote do
-      import Etude.DSL
+  def resolve(thunk) do
+    {value, state} = resolve(thunk, %Etude.State{})
+    Etude.State.cleanup(state)
+    value
+  end
+
+  def resolve(thunk, state) do
+    case Etude.Thunk.resolve(thunk, state) do
+      {value, state} ->
+        {value, state}
+      {:await, thunk, state} ->
+        state = Etude.State.mailbox_receive(state)
+        resolve(thunk, state)
     end
-  end
-
-  def compile(name, children, opts \\ []) do
-    opts = defaults(name, opts)
-    init_template(name, children, opts)
-    |> compile_template(opts)
-    |> codegen(opts)
-  end
-
-  def compile_lazy(name, children, opts \\ []) do
-    opts = defaults(name, opts)
-    template = init_template(name, children, opts)
-    {template.version, fn() ->
-      template
-      |> compile_template(opts)
-      |> codegen(opts)
-    end}
-  end
-
-  defp defaults(name, opts) do
-    opts
-    |> Keyword.put_new(:file, "")
-    |> Keyword.put_new(:erlc_options, [])
-    |> Keyword.put_new(:main, opts[:function] || :render)
-    |> Keyword.put_new(:name, name)
-  end
-
-  defp init_template(mod, [{name, _} | _] = children, opts) when is_atom(name) do
-    opts = Keyword.put_new(opts, :main, name)
-    create_template(mod, children, opts)
-  end
-
-  defp create_template(name, children, opts) do
-    children = children
-    |> Enum.map(fn({name, nodes}) ->
-      {name, transform_children(nodes, opts)}
-    end)
-    %Template{name: name,
-              version: :erlang.phash2({System.version, @vsn, children}),
-              children: children}
-  end
-
-  defp compile_template(template, opts) do
-    Template.compile(template, opts)
-  end
-
-  defp transform_children(%Etude.Node.Block{children: children}, opts) do
-    transform_children(children, opts)
-  end
-  defp transform_children(children, opts) do
-    children
-    |> Etude.Passes.Scopes.transform(opts)
-    |> Etude.Passes.SideEffects.transform(opts)
-  end
-
-  defp codegen(input, opts) do
-    input
-    |> Codegen.to_forms(opts)
-    |> Codegen.to_beam(opts)
   end
 end
