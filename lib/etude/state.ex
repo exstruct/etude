@@ -30,11 +30,11 @@ defmodule Etude.State do
     {value, %{state | cache: cache}}
   end
 
-  def mailbox_send(%{mailbox: mailbox} = state, message) do
+  def send(%{mailbox: mailbox} = state, message) do
     %{state | mailbox: Etude.Mailbox.send(mailbox, message)}
   end
 
-  def mailbox_receive(%{mailbox: mailbox, mailbox_timeout: timeout} = state) do
+  def receive(%{mailbox: mailbox, mailbox_timeout: timeout} = state) do
     mailbox
     |> Etude.Mailbox.stream!(timeout)
     ## TODO resuce any errors and wrap them so we can set the state in the exception
@@ -45,6 +45,10 @@ defmodule Etude.State do
 
   def add_receiver(%{receivers: receivers} = state, receiver) do
     %{state | receivers: [receiver | receivers]}
+  end
+
+  def put_private(%{private: private} = state, key, value) do
+    %{state | private: Map.put(private, key, value)}
   end
 
   def cleanup(state) do

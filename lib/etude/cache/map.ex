@@ -17,6 +17,10 @@ defimpl Etude.Cache, for: Map do
     end
   end
 
+  def delete(cache, key) do
+    Map.delete(cache, key)
+  end
+
   def clear(_) do
     %{}
   end

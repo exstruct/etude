@@ -1,5 +1,5 @@
-defmodule Etude.Test.Thunk do
-  use Etude.Test.Case
+defmodule Test.Etude.Thunk do
+  use Test.Etude.Case
 
   test "resolve single continuation" do
     [resolve_value(1),

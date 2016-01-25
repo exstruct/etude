@@ -1,4 +1,4 @@
-defmodule Etude.Test.Case do
+defmodule Test.Etude.Case do
   defmacro __using__(_) do
     quote do
       use ExUnit.Case, async: true

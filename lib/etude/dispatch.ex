@@ -8,16 +8,6 @@ defmodule Etude.Dispatch do
         lookup(module, function, arity)
       end
       defoverridable resolve: 3
-
-      # defmacro call([do: block]) do
-      #   quote do
-      #     Process.put(:__ETUDE_DISPATCH__, unquote(__MODULE__))
-      #     res = unquote(block)
-      #     Process.delete(:__ETUDE_DISPATCH__)
-      #     res
-      #   end
-      # end
-      # defoverridable call: 1
     end
   end
 
@@ -25,16 +15,42 @@ defmodule Etude.Dispatch do
     Process.get(:__ETUDE_DISPATCH__, Etude.Dispatch.Fallback)
   end
 
-  defmacro rewrite(source_module, target_module) do
+  defmacro rewrite(source_module, target_module) when is_atom(source_module) and is_atom(target_module) do
     quote do
       defp lookup(unquote(source_module), function, arity) do
         lookup(unquote(target_module), function, arity)
       end
     end
   end
+  defmacro rewrite({:&, _, [source]}, target) do
+    quote do
+      rewrite(unquote(source), unquote(target))
+    end
+  end
+  defmacro rewrite(source, {:&, _, target}) do
+    quote do
+      rewrite(unquote(source), unquote(target))
+    end
+  end
+  defmacro rewrite({:/, _, [{{:., _, [source_module, source_function]}, _, _}, arity]},
+                   {:/, _, [{{:., _, [target_module, target_function]}, _, _}, arity]}) do
+    quote do
+      defp lookup(unquote(source_module), unquote(source_function), unquote(arity)) do
+        lookup(unquote(target_module), unquote(target_function), unquote(arity))
+      end
+    end
+  end
 
   defmacro __before_compile__(_) do
     quote do
+      defp lookup(module, function, nil) do
+        %Etude.Thunk.Continuation{
+          function: fn(arguments, state) ->
+            continuation = resolve(module, function, length(arguments))
+            {%{continuation | arguments: arguments}, state}
+          end
+        }
+      end
       defp lookup(module, function, arity) do
         thunk = function_exported?(module, :__etude__, 3) && module.__etude__(function, arity, __MODULE__)
         thunk || Etude.Dispatch.eager_apply(module, function, arity)

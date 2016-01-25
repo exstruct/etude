@@ -10,7 +10,11 @@ defmodule Etude do
   def resolve(thunk, state) do
     case Etude.Thunk.resolve(thunk, state) do
       {value, state} ->
-        {value, state}
+        if Etude.Thunk.resolved?(thunk) do
+          {value, state}
+        else
+          resolve(value, state)
+        end
       {:await, thunk, state} ->
         state = Etude.State.mailbox_receive(state)
         resolve(thunk, state)
