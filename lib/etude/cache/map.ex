@@ -7,7 +7,7 @@ defimpl Etude.Cache, for: Map do
     Map.put(cache, key, value)
   end
 
-  def put_new_lazy_and_return(cache, key, fun) do
+  def memoize(cache, key, fun) do
     case Map.fetch(cache, key) do
       :error ->
         value = fun.()

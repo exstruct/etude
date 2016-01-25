@@ -13,7 +13,7 @@ defimpl Etude.Cache, for: PID do
     pid
   end
 
-  def put_new_lazy_and_return(pid, key, fun) when pid == self do
+  def memoize(pid, key, fun) when pid == self do
     case Process.get(key) do
       {:ok, value} ->
         {value, pid}

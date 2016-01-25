@@ -12,32 +12,9 @@ defmodule Etude.State do
     }
   end
 
-  def cache_get(%{cache: cache}, key) do
-    Etude.Cache.get(cache, key)
-  end
-
-  def cache_put(%{cache: cache} = state, key, value) do
-    %{state | cache: Etude.Cache.put(cache, key, value)}
-  end
-
-  def cache_put_new_lazy(%{cache: cache} = state, key, fun) do
-    {_, cache} = Etude.Cache.put_new_lazy_and_return(cache, key, fun)
-    %{state | cache: cache}
-  end
-
-  def memoize(%{cache: cache} = state, key, fun) do
-    {value, cache} = Etude.Cache.put_new_lazy_and_return(cache, key, fun)
-    {value, %{state | cache: cache}}
-  end
-
-  def send(%{mailbox: mailbox} = state, message) do
-    %{state | mailbox: Etude.Mailbox.send(mailbox, message)}
-  end
-
-  def receive(%{mailbox: mailbox, mailbox_timeout: timeout} = state) do
-    mailbox
+  def receive(%{mailbox_timeout: timeout} = state) do
+    state
     |> Etude.Mailbox.stream!(timeout)
-    ## TODO resuce any errors and wrap them so we can set the state in the exception
     |> Enum.reduce(state, fn({message, mailbox}, state) ->
       Etude.Receivable.receive_into(message, %{state | mailbox: mailbox})
     end)
@@ -55,7 +32,7 @@ defmodule Etude.State do
     state
     |> cancel_timeouts()
     |> demonitor_refs()
-    |> clear_cache()
+    |> Etude.Cache.clear()
   end
 
   defp cancel_timeouts(%{timeouts: timeouts} = state) do
@@ -74,8 +51,39 @@ defmodule Etude.State do
 
     %{state | refs: %{}}
   end
+end
 
-  defp clear_cache(%{cache: cache} = state) do
+defimpl Etude.Cache, for: Etude.State do
+  def get(%{cache: cache}, key) do
+    Etude.Cache.get(cache, key)
+  end
+
+  def put(%{cache: cache} = state, key, value) do
+    %{state | cache: Etude.Cache.put(cache, key, value)}
+  end
+
+  def memoize(%{cache: cache} = state, key, fun) do
+    {value, cache} = Etude.Cache.memoize(cache, key, fun)
+    {value, %{state | cache: cache}}
+  end
+
+  def delete(%{cache: cache} = state, key) do
+    %{state | cache: Etude.Cache.delete(cache, key)}
+  end
+
+  def clear(%{cache: cache} = state) do
     %{state | cache: Etude.Cache.clear(cache)}
+  end
+end
+
+defimpl Etude.Mailbox, for: Etude.State do
+  def send(%{mailbox: mailbox} = state, message) do
+    %{state | mailbox: Etude.Mailbox.send(mailbox, message)}
+  end
+
+  def stream!(%{mailbox: mailbox}, timeout) do
+    mailbox
+    |> Etude.Mailbox.stream!(timeout)
+    ## TODO rescue any errors and wrap them so we can set the state in the exception
   end
 end

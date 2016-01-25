@@ -74,7 +74,7 @@ defmodule Etude.Dispatch do
       %Etude.Thunk.Continuation{
         function: fn(arguments, state) ->
           Etude.Thunk.resolve_all(arguments, state, fn(arguments = unquote(args), state) ->
-            Etude.State.memoize(state, {module, function, arguments}, fn() ->
+            Etude.Cache.memoize(state, {module, function, arguments}, fn() ->
               apply(module, function, unquote(args))
             end)
           end)

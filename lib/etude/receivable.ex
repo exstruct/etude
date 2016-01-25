@@ -11,7 +11,7 @@ defimpl Etude.Receivable, for: Any do
   end
 
   defp match_receivable(receivable, [], state, acc) do
-    Logger.warn("Unhandled message #{inspect(receivable)}")
+    Logger.warn("Unhandled message in #{inspect(self)}: #{inspect(receivable)}")
 
     %{state | receivers: acc}
   end

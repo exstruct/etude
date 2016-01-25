@@ -8,8 +8,7 @@ defmodule Etude.Mixfile do
      description: "parallel computation coordination utilities for erlang/elixir",
      deps: deps,
      package: package,
-     aliases: aliases,
-     consolidate_protocols: !(Mix.env in [:test, :bench])]
+     aliases: aliases]
   end
 
   def application do

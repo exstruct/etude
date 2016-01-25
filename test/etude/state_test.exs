@@ -1,6 +1,8 @@
 defmodule Test.Etude.State do
   use Test.Etude.Case
   alias Etude.State
+  alias Etude.Cache
+  alias Etude.Mailbox
 
   test "memoize" do
     assertion = fn({value, state}) ->
@@ -9,11 +11,11 @@ defmodule Test.Etude.State do
     end
 
     %State{}
-    |> State.memoize({:foo, 1}, fn() ->
+    |> Cache.memoize({:foo, 1}, fn() ->
       123
     end)
     |> assertion.()
-    |> State.memoize({:foo, 1}, fn() ->
+    |> Cache.memoize({:foo, 1}, fn() ->
       flunk "The state did not memoize the call"
     end)
     |> assertion.()
@@ -24,8 +26,8 @@ defmodule Test.Etude.State do
     state = %State{mailbox: []}
 
     state = state
-    |> State.send(:world)
-    |> State.send(:hello)
+    |> Mailbox.send(:world)
+    |> Mailbox.send(:hello)
 
     assert [:hello, :world] == state.mailbox
 
@@ -40,9 +42,9 @@ defmodule Test.Etude.State do
 
     state = %State{mailbox: []}
     |> State.add_receiver(receiver)
-    |> State.send(:hello)
+    |> Mailbox.send(:hello)
     |> State.add_receiver(receiver)
-    |> State.send(:world)
+    |> Mailbox.send(:world)
     |> State.receive()
 
     assert %{hello: true, world: true} == state.private
