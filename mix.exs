@@ -27,7 +27,8 @@ defmodule Etude.Mixfile do
     [{:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
-     {:mix_test_watch, "~> 0.2", only: :dev}]
+     {:mix_test_watch, "~> 0.2", only: :dev},
+     {:poison, "~> 2.0.1"}]
   end
 
   defp package do

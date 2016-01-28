@@ -1,12 +1,20 @@
-defmodule Etude.Thunk.Fn do
-  def wrap_fun(state, _fun) do
+defmodule Etude.Thunk.Function do
+  defstruct function: nil
+end
+
+defimpl Etude.Thunk, for: Etude.Thunk.Function do
+  def resolve(%{function: function}, state) when is_function(function) do
+    {function, state}
+  end
+
+  defp wrap_fun(state, _fun) do
     Process.put(:WRAPPED_FUN_STATE, state)
     # case erlang.fun_info(fun, :arity) do
 
     # end
   end
 
-  def unwrap_fun_res(res) do
+  defp unwrap_fun_res(res) do
     case Process.get(:WRAPPED_FUN_STATE) do
       {:await, state} ->
         {:await, res, state}
@@ -18,7 +26,7 @@ defmodule Etude.Thunk.Fn do
   for arity <- 1..64 do
     args = 1..(arity - 1) |> Enum.map(&Macro.var(:"arg_#{&1}", nil))
 
-    def gen_fun(unquote(arity), fun) do
+    defp gen_fun(unquote(arity), fun) do
       fn(unquote_splicing(args)) ->
         case Process.get(:WRAPPED_FUN_STATE) do
           nil ->
