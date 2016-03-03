@@ -59,4 +59,18 @@ defmodule Test.Etude.State do
       |> Enum.to_list()
     end
   end
+
+  test "reducers" do
+    state = %State{mailbox: []}
+    |> State.add_reducer(fn(%{mailbox: [_, _]} = state) ->
+      %{state | mailbox: []}
+    end)
+    |> Mailbox.send(:hello)
+    |> Mailbox.send(:joe)
+    |> State.receive()
+
+    assert [] == state.mailbox
+
+    State.cleanup(state)
+  end
 end

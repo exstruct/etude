@@ -3,6 +3,7 @@ defmodule Etude.State do
             mailbox: [],
             mailbox_timeout: 10_000,
             private: %{},
+            reducers: [],
             receivers: [],
             refs: %{},
             ref_default_timeout: 5_000,
@@ -13,16 +14,23 @@ defmodule Etude.State do
     defexception [:message, :state]
   end
 
-  def receive(%{mailbox_timeout: timeout} = state) do
+  def receive(%{reducers: [], mailbox_timeout: timeout} = state) do
     state
     |> Etude.Mailbox.stream!(timeout)
     |> Enum.reduce(state, fn({message, mailbox}, state) ->
       Etude.Receivable.receive_into(message, %{state | mailbox: mailbox})
     end)
   end
+  def receive(%{reducers: [prepare | rest]} = state) do
+    __MODULE__.receive(%{prepare.(state) | reducers: rest})
+  end
 
   def add_receiver(%{receivers: receivers} = state, receiver) do
     %{state | receivers: [receiver | receivers]}
+  end
+
+  def add_reducer(%{reducers: reducers} = state, prepare) do
+    %{state | reducers: [prepare | reducers]}
   end
 
   def put_private(%{private: private} = state, key, value) do
