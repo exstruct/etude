@@ -3,7 +3,7 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "0.4.0",
+     version: "1.0.0-beta.0",
      elixir: "~> 1.0",
      description: "parallel computation coordination utilities for erlang/elixir",
      deps: deps,
@@ -24,12 +24,12 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
+    [{:nile, "~> 0.1.3"},
+     {:poison, "~> 2.1.0"},
+     {:excheck, "~> 0.2.3", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
-     {:mix_test_watch, "~> 0.2", only: :dev},
-     {:nile, "~> 0.1.3"},
-     {:poison, "~> 2.0.1"}]
+     {:mix_test_watch, "~> 0.2", only: :dev}]
   end
 
   defp package do
