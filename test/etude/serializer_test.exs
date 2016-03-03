@@ -157,16 +157,14 @@ defmodule Test.Etude.Serializer do
   end
 
   defp thunk_value(value) do
-    %Etude.Thunk.Continuation{function: fn(_, state) ->
-      {value, state}
+    %Etude.Thunk.Application{function: fn() ->
+      value
     end}
   end
 
   defp await_value(value) do
     %Etude.Thunk.Continuation{function: fn(_, state) ->
-      {:await, %Etude.Thunk.Continuation{function: fn(_, state) ->
-        {value, state}
-      end}, Etude.Mailbox.send(state, :foo)}
+      {:await, thunk_value(value), Etude.Mailbox.send(state, :foo)}
     end}
   end
 end

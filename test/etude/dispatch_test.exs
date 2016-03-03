@@ -3,7 +3,7 @@ defmodule Test.Etude.Dispatch do
   alias Etude.Dispatch
   alias Dispatch.Fallback
   alias Etude.Thunk
-  alias Thunk.Continuation
+  alias Thunk.Application
 
   test "dispatch fallback" do
     call = Fallback.resolve(:erlang, :+, 2)
@@ -21,10 +21,11 @@ defmodule Test.Etude.Dispatch do
   defmodule EtudeModule do
     def __etude__(:hello, 1, dispatch) do
       join = dispatch.resolve(Enum, :join, 1)
-      %Continuation{
-        function: fn([name], state) ->
-          {%{join | arguments: [["Hello, ", name]]}, state}
-        end
+      %Application{
+        function: fn(name) ->
+          %{join | arguments: [["Hello, ", name]]}
+        end,
+        arity: 1
       }
     end
   end
