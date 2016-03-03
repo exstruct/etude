@@ -1,16 +1,13 @@
 defmodule Etude.State do
-  def __struct__ do
-    %{__struct__: __MODULE__,
-      cache: %{},
-      mailbox: self(),
-      mailbox_timeout: 10_000,
-      private: %{},
-      receivers: [],
-      refs: %{},
-      ref_default_timeout: 5_000,
-      timeouts: %{},
-    }
-  end
+  defstruct cache: %{},
+            mailbox: [],
+            mailbox_timeout: 10_000,
+            private: %{},
+            receivers: [],
+            refs: %{},
+            ref_default_timeout: 5_000,
+            timeouts: %{},
+            unhandled_warning: true
 
   def receive(%{mailbox_timeout: timeout} = state) do
     state

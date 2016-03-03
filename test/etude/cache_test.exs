@@ -5,7 +5,9 @@ defmodule Test.Etude.Cache do
   data = ["foo", :bar, %{foo: :bar}, [1,[2,[3,[4,[5]]]]]]
 
   for {name, cache} <- [{"pid", quote(do: self())},
-                        {"map", quote(do: %{})}] do
+                        {"map", quote(do: %{})},
+                        {"state (pid)", quote(do: %Etude.State{cache: self()})},
+                        {"state (map)", quote(do: %Etude.State{cache: %{}})}] do
     for key <- data, value <- data do
       test "#{name} caches #{inspect(value)} with key #{inspect(key)}" do
         key = unquote(Macro.escape(key))

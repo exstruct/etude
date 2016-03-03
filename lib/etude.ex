@@ -2,28 +2,17 @@ defmodule Etude do
   @vsn Mix.Project.config[:version]
 
   def resolve(thunk) do
-    {value, state} = resolve(thunk, %Etude.State{})
+    resolve(thunk, [])
+  end
+  def resolve(thunk, opts) when is_list(opts) do
+    {value, state} = resolve(thunk, %Etude.State{}, opts)
     Etude.State.cleanup(state)
     value
   end
-
   def resolve(thunk, state) do
-    case Etude.Thunk.resolve(thunk, state) do
-      {value, state} ->
-        {value, state}
-      {:await, thunk, state} ->
-        state = Etude.State.mailbox_receive(state)
-        resolve(thunk, state)
-    end
+    resolve(thunk, state, [])
   end
-
-  def resolve_once(thunk, state) do
-    case Etude.Thunk.resolve_once(thunk, state) do
-      {value, state} ->
-        {value, state}
-      {:await, thunk, state} ->
-        state = Etude.State.mailbox_receive(state)
-        {thunk, state}
-    end
+  def resolve(thunk, state, opts) do
+    Etude.Serializer.TERM.serialize(thunk, state, opts)
   end
 end

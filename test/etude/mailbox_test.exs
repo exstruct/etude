@@ -1,9 +1,12 @@
 defmodule Test.Etude.Mailbox do
   use Test.Etude.Case
   alias Etude.Mailbox
+  alias Etude.State
 
   for {name, mailbox} <- [{"pid", quote(do: self())},
-                          {"list", quote(do: [])}] do
+                          {"list", quote(do: [])},
+                          {"state (pid)", quote(do: %State{mailbox: self()})},
+                          {"state (list)", quote(do: %State{mailbox: []})}] do
     test "#{name} sends and receives messages" do
       mailbox = unquote(mailbox)
       |> Mailbox.send(1)

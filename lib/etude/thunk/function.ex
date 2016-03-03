@@ -7,21 +7,21 @@ defimpl Etude.Thunk, for: Etude.Thunk.Function do
     {function, state}
   end
 
-  defp wrap_fun(state, _fun) do
-    Process.put(:WRAPPED_FUN_STATE, state)
-    # case erlang.fun_info(fun, :arity) do
+  # defp wrap_fun(state, _fun) do
+  #   Process.put(:WRAPPED_FUN_STATE, state)
+  #   # case erlang.fun_info(fun, :arity) do
 
-    # end
-  end
+  #   # end
+  # end
 
-  defp unwrap_fun_res(res) do
-    case Process.get(:WRAPPED_FUN_STATE) do
-      {:await, state} ->
-        {:await, res, state}
-      state ->
-        {res, state}
-    end
-  end
+  # defp unwrap_fun_res(res) do
+  #   case Process.get(:WRAPPED_FUN_STATE) do
+  #     {:await, state} ->
+  #       {:await, res, state}
+  #     state ->
+  #       {res, state}
+  #   end
+  # end
 
   for arity <- 1..64 do
     args = 1..(arity - 1) |> Enum.map(&Macro.var(:"arg_#{&1}", nil))

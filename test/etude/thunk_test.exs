@@ -41,8 +41,8 @@ defmodule Test.Etude.Thunk do
 
   test "anonymous functions" do
     [1..5]
-    |> resolve(fn([range], s) ->
-      Enum.map(range, fn(i) ->
+    |> resolve(fn([range], _s) ->
+      Enum.map(range, fn(_i) ->
 
       end)
     end)
