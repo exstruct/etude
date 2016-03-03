@@ -139,7 +139,7 @@ defmodule Etude.Serializer do
           ## TODO call the etude serializer protocol here
           {encode(other, opts), state}
         else
-          Etude.Thunk.resolve(other, state)
+          Etude.Thunk.resolve(other, state, &__serialize__(&1, &2, opts))
         end
       end
 
@@ -176,18 +176,10 @@ defmodule Etude.Serializer do
       defp encode_nested_item(ready?, {@ready, _} = item, state, _opts) do
         {ready?, item, state}
       end
-      defp encode_nested_item(ready?, {@thunk, %Thunk{} = item}, state, opts) do
-        case Etude.Thunk.resolve(item, state) do
-          {value, state} ->
-            {ready?, {@ready, value}, state}
-          {:await, thunk, state} ->
-            {false, {@thunk, thunk}, state}
-        end
-      end
       defp encode_nested_item(ready?, {@thunk, item}, state, opts) do
         case Etude.Thunk.resolve(item, state) do
           {value, state} ->
-            encode_nested_item(ready?, value, state, opts)
+            {ready?, {@ready, value}, state}
           {:await, thunk, state} ->
             {false, {@thunk, thunk}, state}
         end

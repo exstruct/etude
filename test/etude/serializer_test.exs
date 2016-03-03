@@ -79,6 +79,20 @@ defmodule Test.Etude.Serializer do
     },
     {
       quote do
+        %{"message" => thunk_value("Hello")}
+      end,
+      %{"message" => "Hello"}
+    },
+    {
+      quote do
+        %{"message" => thunk_value(%{
+          "Hello" => thunk_value("Joe")
+        })}
+      end,
+      %{"message" => %{"Hello" => "Joe"}}
+    },
+    {
+      quote do
         await_value(%{
           "foo" => await_value(%{
             "bar" => await_value(%{
