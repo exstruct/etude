@@ -93,6 +93,12 @@ defmodule Test.Etude.Serializer do
     },
     {
       quote do
+        await_value(await_value(await_value(await_value(await_value(1)))))
+      end,
+      1
+    },
+    {
+      quote do
         await_value(%{
           "foo" => await_value(%{
             "bar" => await_value(%{
