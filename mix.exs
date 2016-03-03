@@ -28,6 +28,7 @@ defmodule Etude.Mixfile do
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
      {:mix_test_watch, "~> 0.2", only: :dev},
+     {:nile, "~> 0.1.3"},
      {:poison, "~> 2.0.1"}]
   end
 

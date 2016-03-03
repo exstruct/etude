@@ -9,6 +9,10 @@ defmodule Etude.State do
             timeouts: %{},
             unhandled_warning: true
 
+  defmodule TimeoutException do
+    defexception [:message, :state]
+  end
+
   def receive(%{mailbox_timeout: timeout} = state) do
     state
     |> Etude.Mailbox.stream!(timeout)
@@ -74,13 +78,23 @@ defimpl Etude.Cache, for: Etude.State do
 end
 
 defimpl Etude.Mailbox, for: Etude.State do
+  alias Etude.State.TimeoutException
   def send(%{mailbox: mailbox} = state, message) do
     %{state | mailbox: Etude.Mailbox.send(mailbox, message)}
   end
 
-  def stream!(%{mailbox: mailbox}, timeout) do
+  def stream!(%{mailbox: mailbox} = state, timeout) do
     mailbox
     |> Etude.Mailbox.stream!(timeout)
-    ## TODO rescue any errors and wrap them so we can set the state in the exception
+    |> Nile.Exception.rescue_stream(Etude.Mailbox.TimeoutException, fn
+      (%{mailbox: nil} = e) ->
+        message = Etude.Mailbox.TimeoutException.message(e)
+        stacktrace = System.stacktrace
+        reraise %TimeoutException{message: message, state: state}, stacktrace
+      (%{mailbox: mailbox} = e) ->
+        message = Etude.Mailbox.TimeoutException.message(e)
+        stacktrace = System.stacktrace
+        reraise %TimeoutException{message: message, state: %{state | mailbox: mailbox}}, stacktrace
+    end)
   end
 end

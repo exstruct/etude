@@ -26,7 +26,7 @@ defmodule Test.Etude.Mailbox do
   end
 
   test "process raises after timing out" do
-    assert_raise Etude.Mailbox.PID.TimeoutException, fn ->
+    assert_raise Etude.Mailbox.TimeoutException, fn ->
       self
       |> Mailbox.stream!(1)
       |> Enum.to_list()

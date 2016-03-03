@@ -51,4 +51,12 @@ defmodule Test.Etude.State do
 
     State.cleanup(state)
   end
+
+  test "timeout exception" do
+    assert_raise Etude.State.TimeoutException, fn ->
+      %State{mailbox: self()}
+      |> Mailbox.stream!(1)
+      |> Enum.to_list()
+    end
+  end
 end
