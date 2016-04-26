@@ -37,7 +37,7 @@ defmodule Test.Etude.State do
   test "mailbox receive" do
     receiver = fn
       (value, state) ->
-        State.put_private(state, value, true)
+        {:done, State.put_private(state, value, true)}
     end
 
     state = %State{mailbox: []}

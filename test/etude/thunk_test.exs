@@ -43,7 +43,7 @@ defmodule Test.Etude.Thunk do
     [1..5]
     |> resolve(fn([range], _s) ->
       Enum.map(range, fn(_i) ->
-
+        nil
       end)
     end)
   end
