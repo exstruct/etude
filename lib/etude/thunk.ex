@@ -80,7 +80,21 @@ defprotocol Etude.Thunk do
                      arguments: arguments}, state}
       end
     end
+  end
 
+  def resolve_recursive(value, state) do
+    Etude.Serializer.TERM.__serialize__(value, state)
+  end
+
+  def resolve_recursive(term, state, fun) do
+    case resolve_recursive(term, state) do
+      {value, state} ->
+        fun.(value, state)
+      {:await, thunk, state} ->
+        {:await, %{__struct__: Etude.Thunk.Continuation,
+                   function: fn(a, s) -> resolve_recursive(a, s, fun) end,
+                   arguments: thunk}, state}
+    end
   end
 
   Protocol.__spec__?(__MODULE__, :resolve, 2)

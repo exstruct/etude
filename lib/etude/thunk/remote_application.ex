@@ -52,7 +52,11 @@ defimpl Etude.Thunk, for: Etude.Thunk.RemoteApplication do
       end)
     end)
   end
-  def resolve(%{module: _module, function: _function, arguments: _arguments, evaluation: :eager}, _state) do
-    :TODO
+  def resolve(%{module: module, function: function, arguments: arguments, evaluation: :eager}, state) do
+    Etude.Thunk.resolve_recursive({module, function, arguments}, state, fn(mfa = {module, function, arguments}, state) ->
+      Etude.Cache.memoize(state, mfa, fn ->
+        apply(module, function, arguments)
+      end)
+    end)
   end
 end

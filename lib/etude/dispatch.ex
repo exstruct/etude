@@ -19,7 +19,7 @@ defmodule Etude.Dispatch do
     quote do
       defp lookup(module, function, arity) do
         thunk = function_exported?(module, :__etude__, 3) && module.__etude__(function, arity, __MODULE__)
-        thunk || Etude.Thunk.RemoteApplication.new(module, function, arity, :shallow)
+        thunk || Etude.Thunk.RemoteApplication.new(module, function, arity, :eager)
       end
     end
   end
