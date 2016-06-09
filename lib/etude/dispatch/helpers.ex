@@ -1,11 +1,4 @@
 defmodule Etude.Dispatch.Helpers do
-  defmacro rewrite(source_module, target_module) when is_atom(source_module) and is_atom(target_module) do
-    quote do
-      defp lookup(unquote(source_module), function, arity) do
-        lookup(unquote(target_module), function, arity)
-      end
-    end
-  end
   defmacro rewrite({:&, _, [source]}, target) do
     quote do
       rewrite(unquote(source), unquote(target))
@@ -21,6 +14,13 @@ defmodule Etude.Dispatch.Helpers do
     quote do
       defp lookup(unquote(source_module), unquote(source_function), unquote(arity)) do
         lookup(unquote(target_module), unquote(target_function), unquote(arity))
+      end
+    end
+  end
+  defmacro rewrite(source_module, target_module) do
+    quote do
+      defp lookup(unquote(source_module), function, arity) do
+        lookup(unquote(target_module), function, arity)
       end
     end
   end
