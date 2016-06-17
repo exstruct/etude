@@ -108,10 +108,10 @@ defmodule Etude.Utils do
   end
 
   def compile_mfa_hash(mod, fun, [], _) do
-    Etude.Runtime.hash({mod, fun, []})
+    escape({mod, fun, []})
   end
   def compile_mfa_hash(mod, fun, _, args) do
-    "'Elixir.Etude.Runtime':hash({#{mod}, #{fun}, #{args}})"
+    "{#{mod}, #{fun}, #{args}}"
   end
 
   def wildcard(n) when is_integer(n) do

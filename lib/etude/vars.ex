@@ -1,4 +1,6 @@
 defmodule Etude.Vars do
+  alias Etude.Utils
+
   def state do
     "_State"
   end
@@ -30,13 +32,20 @@ defmodule Etude.Vars do
   end
   def child_scope(vars, :isolate) do
     """
-    rebind(#{scope}) = {'Elixir.Etude.Runtime':hash({#{scope}, #{vars}}), 0}
+    rebind(#{scope}) = {{#{scope}, #{escape(vars)}}, 0}
     """
   end
   def child_scope(vars, :inherit) do
     """
     {rebind(_Scope_Namespace), rebind(_Scope_Child)} = #{scope},
-    rebind(#{scope}) = {_Scope_Namespace, 'Elixir.Etude.Runtime':hash({_Scope_Child, #{vars}})}
+    rebind(#{scope}) = {_Scope_Namespace, {_Scope_Child, #{escape(vars)}}}
     """
+  end
+
+  defp escape(vars) when is_binary(vars) do
+    vars
+  end
+  defp escape(vars) do
+    Utils.escape(vars)
   end
 end
