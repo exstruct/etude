@@ -150,7 +150,7 @@ defmodule Test.Etude.Serializer do
 
   defp serialize(serializer, data, expected, decode) do
     state = %Etude.State{unhandled_warning: false}
-    {actual, _} = serializer.serialize(data, state, [])
+    {:ok, actual, _} = serializer.serialize(data, state, [])
     actual = decode.(actual)
 
     assert actual == expected

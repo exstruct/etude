@@ -16,10 +16,10 @@ defimpl Etude.Cache, for: PID do
   def memoize(pid, key, fun) when pid == self do
     case Process.get(key) do
       {:ok, value} ->
-        {value, pid}
+        {:ok, value, pid}
       nil ->
         value = fun.()
-        {value, put(pid, key, value)}
+        {:ok, value, put(pid, key, value)}
     end
   end
 

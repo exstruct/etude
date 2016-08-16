@@ -5,7 +5,7 @@ defmodule Etude do
     resolve(thunk, [])
   end
   def resolve(thunk, opts) when is_list(opts) do
-    {value, state} = resolve(thunk, %Etude.State{mailbox: self()}, opts)
+    {:ok, value, state} = resolve(thunk, %Etude.State{mailbox: self()}, opts)
     Etude.State.cleanup(state)
     value
   end

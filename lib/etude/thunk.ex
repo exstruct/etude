@@ -6,7 +6,7 @@ defprotocol Etude.Thunk do
   defmacrop try_resolve(value) do
     quote do
       case unquote(value) do
-        {value, state} ->
+        {:ok, value, state} ->
           resolve(value, state)
         other ->
           other
@@ -27,7 +27,7 @@ defprotocol Etude.Thunk do
     def unquote(resolve)(thunk, state) do
       case impl_for(thunk) do
         nil ->
-          {thunk, state}
+          {:ok, thunk, state}
         impl ->
           impl.resolve(thunk, state)
           |> unquote(chain)()
@@ -38,7 +38,9 @@ defprotocol Etude.Thunk do
       {Etude.Thunk.t, Etude.State.t} | {:await, Etude.Thunk.t, Etude.State.t}
     def unquote(resolve)(thunk, state, fun) do
       case unquote(resolve)(thunk, state) do
-        {value, state} ->
+        {:error, state} ->
+          {:error, state}
+        {:ok, value, state} ->
           fun.(value, state)
           |> unquote(chain)()
         {:await, thunk, state} ->
@@ -53,7 +55,8 @@ defprotocol Etude.Thunk do
     def unquote(resolve_all)(thunks, state) do
       {arguments, {ready?, state}} = Enum.map_reduce(thunks, {true, state}, fn(thunk, {ready?, state}) ->
         case unquote(resolve)(thunk, state) do
-          {value, state} ->
+          # TODO handle errors
+          {:ok, value, state} ->
             {value, {ready?, state}}
           {:await, thunk, state} ->
             {thunk, {false, state}}
@@ -61,7 +64,7 @@ defprotocol Etude.Thunk do
       end)
 
       if ready? do
-        {arguments, state}
+        {:ok, arguments, state}
       else
         {:await, arguments, state}
       end
@@ -71,7 +74,9 @@ defprotocol Etude.Thunk do
       {Etude.Thunk.t, Etude.State.t} | {:await, Etude.Thunk.t, Etude.State.t}
     def unquote(resolve_all)(thunks, state, fun) do
       case unquote(resolve_all)(thunks, state) do
-        {arguments, state} ->
+        {:error, state} ->
+          {:error, state}
+        {:ok, arguments, state} ->
           fun.(arguments, state)
           |> unquote(chain)()
         {:await, arguments, state} ->
@@ -88,8 +93,10 @@ defprotocol Etude.Thunk do
 
   def resolve_recursive(term, state, fun) do
     case resolve_recursive(term, state) do
-      {value, state} ->
+      {:ok, value, state} ->
         fun.(value, state)
+      {:error, state} ->
+        {:error, state}
       {:await, thunk, state} ->
         {:await, %{__struct__: Etude.Thunk.Continuation,
                    function: fn(a, s) -> resolve_recursive(a, s, fun) end,

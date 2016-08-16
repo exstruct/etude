@@ -11,9 +11,9 @@ defimpl Etude.Cache, for: Map do
     case Map.fetch(cache, key) do
       :error ->
         value = fun.()
-        {value, Map.put(cache, key, value)}
+        {:ok, value, Map.put(cache, key, value)}
       {:ok, value} ->
-        {value, cache}
+        {:ok, value, cache}
     end
   end
 

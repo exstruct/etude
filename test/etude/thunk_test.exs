@@ -57,12 +57,12 @@ defmodule Test.Etude.Thunk do
 
   defp await_apply(arguments, module, function) do
     await(arguments, fn(args, s) ->
-      {apply(module, function, args), s}
+      {:ok, apply(module, function, args), s}
     end)
   end
 
   defp await_value(value) do
-    await(fn(s) -> {value, s} end)
+    await(fn(s) -> {:ok, value, s} end)
   end
 
   defp await(fun) do
@@ -79,12 +79,12 @@ defmodule Test.Etude.Thunk do
   end
 
   def resolve_value(value) do
-    resolve(fn(s) -> {value, s} end)
+    resolve(fn(s) -> {:ok, value, s} end)
   end
 
   defp resolve_apply(arguments, module, function) do
     resolve(arguments, fn(args, s) ->
-      {apply(module, function, args), s}
+      {:ok, apply(module, function, args), s}
     end)
   end
 
@@ -102,7 +102,7 @@ defmodule Test.Etude.Thunk do
   end
 
   defp done(value, state) do
-    {value, state}
+    {:ok, value, state}
   end
 
   defp c(arguments, fun) do
@@ -113,10 +113,10 @@ defmodule Test.Etude.Thunk do
     Etude.Thunk.resolve_all(thunks, state, fun)
   end
 
-  defp assert_resolve({value, state}) do
+  defp assert_resolve({:ok, value, state}) do
     Etude.Thunk.resolve(value, state)
   end
-  defp assert_resolve({value, state}, fun) do
+  defp assert_resolve({:ok, value, state}, fun) do
     Etude.Thunk.resolve(value, state, fun)
   end
 
@@ -134,7 +134,7 @@ defmodule Test.Etude.Thunk do
     Etude.Thunk.resolve(thunk, state, fun)
   end
 
-  defp assert_value({actual, state}, expected) do
+  defp assert_value({:ok, actual, state}, expected) do
     assert actual == expected
     {actual, state}
   end

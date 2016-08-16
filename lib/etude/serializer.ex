@@ -21,14 +21,18 @@ defmodule Etude.Serializer do
 
       def serialize(thunk, state, opts \\ []) do
         case Etude.Thunk.resolve(thunk, state) do
-          {value, state} ->
+          {:ok, value, state} ->
             case __serialize__(value, state, opts) do
-              {value, state} ->
-                {finalize(value, opts), state}
+              {:ok, value, state} ->
+                {:ok, finalize(value, opts), state}
+              {:error, state} ->
+                {:error, state}
               {:await, thunk, state} ->
                 state = Etude.State.receive(state)
                 serialize_recurse(thunk, state, opts)
             end
+          {:error, state} ->
+            {:error, state}
           {:await, thunk, state} ->
             state = Etude.State.receive(state)
             serialize(thunk, state, opts)
@@ -37,8 +41,10 @@ defmodule Etude.Serializer do
 
       defp serialize_recurse(thunk, state, opts) do
         case Etude.Thunk.resolve(thunk, state) do
-          {value, state} ->
-            {finalize(value, opts), state}
+          {:ok, value, state} ->
+            {:ok, finalize(value, opts), state}
+          {:error, state} ->
+            {:error, state}
           {:await, thunk, state} ->
             state = Etude.State.receive(state)
             serialize_recurse(thunk, state, opts)
@@ -57,25 +63,25 @@ defmodule Etude.Serializer do
 
       def __serialize__(thunk, state, opts \\ [])
       def __serialize__(atom, state, opts) when is_atom(atom) do
-        {encode(atom, opts), state}
+        {:ok, encode(atom, opts), state}
       end
       def __serialize__(bin, state, opts) when is_binary(bin) do
-        {encode(bin, opts), state}
+        {:ok, encode(bin, opts), state}
       end
       def __serialize__(integer, state, opts) when is_integer(integer) do
-        {encode(integer, opts), state}
+        {:ok, encode(integer, opts), state}
       end
       def __serialize__(float, state, opts) when is_float(float) do
-        {encode(float, opts), state}
+        {:ok, encode(float, opts), state}
       end
       def __serialize__([], state, opts) do
-        {encode([], opts), state}
+        {:ok, encode([], opts), state}
       end
       def __serialize__(list, state, opts) when is_list(list) do
         {ready?, list, state} = encode_list(list, {true, [], state}, opts)
 
         if ready? do
-          {encode(list, opts), state}
+          {:ok, encode(list, opts), state}
         else
           {:await, %Thunk{value: list, opts: opts}, state}
         end
@@ -85,7 +91,7 @@ defmodule Etude.Serializer do
       end
 
       def __serialize__({}, state, opts) do
-        {encode({}, opts), state}
+        {:ok, encode({}, opts), state}
       end
       for i <- 1..50 do
         tuple_values = Enum.map(1..i, &(:"value_#{&1}" |> Macro.var(nil)))
@@ -95,7 +101,7 @@ defmodule Etude.Serializer do
           tuple = unquote({:{}, [], tuple_values})
 
           if ready? do
-            {encode(tuple, opts), state}
+            {:ok, encode(tuple, opts), state}
           else
             {:await, %Thunk{value: tuple, opts: opts}, state}
           end
@@ -106,14 +112,14 @@ defmodule Etude.Serializer do
         tuple = values |> :erlang.list_to_tuple()
 
         if ready? do
-          {encode(tuple, opts), state}
+          {:ok, encode(tuple, opts), state}
         else
           {:await, %Thunk{value: tuple, opts: opts}, state}
         end
       end
 
       def __serialize__(map, state, opts) when map_size(map) == 0 do
-        {encode(map, opts), state}
+        {:ok, encode(map, opts), state}
       end
       def __serialize__(%{__struct__: _} = other, state, opts) do
         handle_other(other, state, opts)
@@ -122,7 +128,7 @@ defmodule Etude.Serializer do
         {ready?, map, state} = encode_map(map, state, opts)
 
         if ready? do
-          {encode(map, opts), state}
+          {:ok, encode(map, opts), state}
         else
           {:await, %Thunk{value: map, opts: opts}, state}
         end
@@ -137,7 +143,7 @@ defmodule Etude.Serializer do
       defp handle_other(other, state, opts) do
         if Etude.Thunk.resolved?(other) do
           ## TODO call the etude serializer protocol here
-          {encode(other, opts), state}
+          {:ok, encode(other, opts), state}
         else
           Etude.Thunk.resolve(other, state, &__serialize__(&1, &2, opts))
         end
@@ -172,13 +178,17 @@ defmodule Etude.Serializer do
         {ready?, value, state} = encode_nested_item(ready?, item, state, opts)
         encode_list(rest, {ready?, [value | acc], state}, opts)
       end
+      defp encode_list(tail, {ready?, acc, state}, opts) do
+        {ready?, tail, state} = encode_nested_item(ready?, tail, state, opts)
+        {ready?, [:lists.reverse(acc) | tail], state}
+      end
 
       defp encode_nested_item(ready?, {@ready, _} = item, state, _opts) do
         {ready?, item, state}
       end
       defp encode_nested_item(ready?, {@thunk, item}, state, opts) do
         case Etude.Thunk.resolve(item, state) do
-          {value, state} ->
+          {:ok, value, state} ->
             {ready?, {@ready, value}, state}
           {:await, thunk, state} ->
             {false, {@thunk, thunk}, state}
@@ -186,7 +196,7 @@ defmodule Etude.Serializer do
       end
       defp encode_nested_item(ready?, item, state, opts) do
         case __serialize__(item, state, opts) do
-          {value, state} ->
+          {:ok, value, state} ->
             {ready?, {@ready, value}, state}
           {:await, thunk, state} ->
             {false, {@thunk, thunk}, state}

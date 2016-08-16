@@ -5,7 +5,7 @@ defmodule Test.Etude.State do
   alias Etude.Mailbox
 
   test "memoize" do
-    assertion = fn({value, state}) ->
+    assertion = fn({:ok, value, state}) ->
       assert value == 123
       state
     end

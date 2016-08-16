@@ -72,8 +72,10 @@ defimpl Etude.Cache, for: Etude.State do
   end
 
   def memoize(%{cache: cache} = state, key, fun) do
-    {value, cache} = Etude.Cache.memoize(cache, key, fun)
-    {value, %{state | cache: cache}}
+    case Etude.Cache.memoize(cache, key, fun) do
+      {:ok, value, cache} ->
+        {:ok, value, %{state | cache: cache}}
+    end
   end
 
   def delete(%{cache: cache} = state, key) do
