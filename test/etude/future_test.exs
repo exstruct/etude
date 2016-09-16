@@ -1,0 +1,251 @@
+defmodule Test.Etude.Future do
+  use Test.Etude.Case
+
+  import Etude.Future
+
+  test "of" do
+    of("Hello!")
+    |> f()
+    |> assert_term_match({:ok, "Hello!"})
+  end
+
+  test "reject" do
+    reject("Error!")
+    |> f()
+    |> assert_term_match({:error, "Error!"})
+  end
+
+  test "send_after" do
+    send_after("Hello send_after", 100)
+    |> f()
+    |> assert_term_match({:ok, "Hello send_after"})
+  end
+
+  test "retry" do
+    try_catch(fn ->
+      if :rand.uniform > 0.1 do
+        throw :fail
+      end
+      :worked
+    end)
+    |> retry(:infinity)
+    |> f()
+    |> assert_term_match({:ok, :worked})
+  end
+
+  test "timeout_after" do
+    send_after("SHOULDN'T HAPPEN", 1000)
+    |> timeout_after(10)
+    |> retry(5)
+    |> f()
+    |> assert_term_match({:error, _})
+  end
+
+  test "encase" do
+    args = ["{]"]
+    encase(&Poison.decode!/1, args)
+    |> f()
+    |> assert_term_match({:error, _})
+  end
+
+  test "map success" do
+    of(1)
+    |> map(&(&1 + &1))
+    |> f()
+    |> assert_term_match({:ok, 2})
+  end
+
+  test "map fail" do
+    reject(1)
+    |> map(&(&1 + 2))
+    |> f()
+    |> assert_term_match({:error, 1})
+  end
+
+  test "map_rej" do
+    reject(1)
+    |> map_rej(&(&1 + 2))
+    |> f()
+    |> assert_term_match({:error, 3})
+  end
+
+  test "bimap success" do
+    of(1)
+    |> bimap(&(&1), &(&1 * 4))
+    |> f()
+    |> assert_term_match({:ok, 4})
+  end
+
+  test "bimap fail" do
+    reject(2)
+    |> bimap(&(trunc(&1 / 2)), &(&1))
+    |> f()
+    |> assert_term_match({:error, 1})
+  end
+
+  test "chain" do
+    of("test")
+    |> chain(fn(value) ->
+      (value <> value)
+      |> of()
+    end)
+    |> f()
+    |> assert_term_match({:ok, "testtest"})
+  end
+
+  test "chain_rej" do
+    reject("test")
+    |> chain_rej(fn(value) ->
+      (value <> value)
+      |> of()
+    end)
+    |> f()
+    |> assert_term_match({:ok, "testtest"})
+  end
+
+  test "swap success" do
+    of(:swapped)
+    |> swap()
+    |> f()
+    |> assert_term_match({:error, :swapped})
+  end
+
+  test "swap fail" do
+    reject(:swapped)
+    |> swap()
+    |> f()
+    |> assert_term_match({:ok, :swapped})
+  end
+
+  test "race a" do
+    a = send_after(:first, 10)
+    b = send_after(:second, 20)
+    race(a, b)
+    |> f()
+    |> assert_term_match({:ok, :first})
+  end
+
+  test "race b" do
+    a = send_after(:first, 20)
+    b = send_after(:second, 10)
+
+    race(a, b)
+    |> f()
+    |> assert_term_match({:ok, :second})
+  end
+
+  test "fold success" do
+    of(1)
+    |> fold(&(&1), &(&1 + 2))
+    |> f()
+    |> assert_term_match({:ok, 3})
+  end
+
+  test "fold fail" do
+    reject(1)
+    |> fold(&(&1 + 4), &(&1))
+    |> f()
+    |> assert_term_match({:ok, 5})
+  end
+
+  test "finally success" do
+    assert_raise Etude.Future.Error, fn ->
+      of(1)
+      |> finally(
+        of(1)
+        |> map(fn(_) ->
+          raise Etude.Future.Error
+        end)
+      )
+      |> Etude.fork()
+    end
+  end
+
+  test "finally fail" do
+    assert_raise Etude.Future.Error, fn ->
+      reject(1)
+      |> finally(
+        of(1)
+        |> map(fn(_) ->
+          raise Etude.Future.Error
+        end)
+      )
+      |> Etude.fork()
+    end
+  end
+
+  test "parallel success" do
+    p_success(&parallel/1)
+  end
+
+  test "parallel concurrency success" do
+    p_success(&parallel(&1, 2))
+  end
+
+  test "parallel disabled concurrency success" do
+    p_success(&parallel(&1, 1))
+  end
+
+  test "parallel fail" do
+    p_fail(&parallel(&1))
+  end
+
+  test "parallel concurrency fail" do
+    p_fail(&parallel(&1, 2))
+  end
+
+  test "parallel disabled concurrency fail" do
+    p_fail(&parallel(&1, 1))
+  end
+
+  test "pmap (+ 1 - 1)" do
+    p_success(fn(l) ->
+      l
+      |> Enum.map(&(map(&1, fn(v) -> v + 1 end)))
+      |> Enum.map(&(map(&1, fn(v) -> v - 1 end)))
+      |> parallel()
+    end)
+  end
+
+  defp p_success(fun) do
+    for _ <- 1..5 do
+      l = 1..(:rand.uniform(15) + 5)
+      |> Enum.to_list()
+
+      l
+      |> Enum.map(fn(i) ->
+        send_after(i, :rand.uniform(20))
+      end)
+      |> fun.()
+      |> f()
+      |> assert_term_match({_, ^l})
+    end
+  end
+
+  defp p_fail(fun) do
+    for _ <- 1..5 do
+      final = :rand.uniform(15)
+      l = 1..(final + 5)
+      |> Enum.to_list()
+
+      l
+      |> Enum.map(fn
+        (i) when i == final ->
+          reject(i)
+        (i) ->
+          send_after(i, :rand.uniform(20))
+      end)
+      |> fun.()
+      |> f()
+      |> assert_term_match({:error, ^final})
+    end
+  end
+
+  defp f(future) do
+    fn ->
+      Etude.fork(future)
+    end
+    |> Task.async()
+    |> Task.await()
+  end
+end

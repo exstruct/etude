@@ -17,12 +17,12 @@ defimpl Etude.Receivable, for: Any do
     %{state | receivers: acc}
   end
   defp match_receivable(receivable, [receiver | receivers] = remaining, state, acc) do
-    case receiver.(receivable, state) do
+    case receiver.(state, receivable) do
       nil ->
         match_receivable(receivable, receivers, state, [receiver | acc])
-      {:done, state} ->
+      {:done, %Etude.State{} = state} ->
         %{state | receivers: :lists.reverse(receivers) ++ acc}
-      state ->
+      %Etude.State{} = state ->
         %{state | receivers: :lists.reverse(remaining) ++ acc}
     end
   end

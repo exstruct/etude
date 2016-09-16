@@ -8,7 +8,9 @@ defmodule Etude.State do
             refs: %{},
             ref_default_timeout: 5_000,
             timeouts: %{},
-            unhandled_warning: true
+            unhandled_warning: true,
+            scheduled: [],
+            stack: []
 
   defmodule TimeoutException do
     defexception [:message, :state]
@@ -37,6 +39,15 @@ defmodule Etude.State do
     %{state | private: Map.put(private, key, value)}
   end
 
+  def delete_private(%{private: private} = state, key) do
+    %{state | private: Map.delete(private, key)}
+  end
+
+  def update_private(%{private: private} = state, key, fun) do
+    value = Map.get(private, key)
+    %{state | private: Map.put(private, key, fun.(value))}
+  end
+
   def cleanup(state) do
     state
     |> cancel_timeouts()
@@ -59,6 +70,34 @@ defmodule Etude.State do
     end)
 
     %{state | refs: %{}}
+  end
+
+  def schedule(%{scheduled: scheduled, stack: stack} = state, fun) do
+    wrapped = fn(s) ->
+      fun.(%{s | stack: stack})
+    end
+    %{state | scheduled: [wrapped | scheduled]}
+  end
+
+  def execute(%{scheduled: scheduled} = state) do
+    scheduled
+    |> :lists.reverse()
+    |> Enum.reduce(state, fn(fun, state) ->
+      case fun.(state) do
+        {%__MODULE__{} = s, _cancel} ->
+          s
+        s ->
+          s
+      end
+    end)
+  end
+
+  def push_location(%{stack: stack} = state, location) do
+    %{state | stack: [location | stack]}
+  end
+
+  def pop_location(%{stack: [_ | stack]} = state) do
+    %{state | stack: stack}
   end
 end
 
