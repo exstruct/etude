@@ -72,7 +72,7 @@ defmodule Etude.Future do
   def timeout_after(future, time) do
     send_after(:timeout, time)
     |> chain(fn(_) ->
-      try_catch(fn -> throw :timeout end)
+      wrap(fn -> throw :timeout end)
     end)
     |> race(future)
     |> put_location()
@@ -113,7 +113,7 @@ defmodule Etude.Future do
     |> put_location()
   end
 
-  def try_catch(fun) do
+  def wrap(fun) do
     encase(fun, [])
     |> put_location()
   end
@@ -296,36 +296,47 @@ defmodule Etude.Future do
     fn(state, rej, res) ->
       ref = mkref()
 
-      once = fn(fun) ->
-        fn(%{private: private} = state, value) ->
-          case Map.get(private, ref) do
-            {_, _, true} ->
-              state
-              |> State.delete_private(ref)
-            {c1, c2, false} ->
-              state
+      state = State.put_private(state, ref, {&noop/1, &noop/1, false})
+
+      {%{private: private} = state, c1} = f(a, state, race_once(rej, ref), race_once(res, ref))
+      case Map.get(private, ref) do
+        {_, _, true} ->
+          state
+        _ ->
+          {state, c2} = f(b, state, race_once(rej, ref), race_once(res, ref))
+
+          state = State.update_private(state, ref, fn({_, _, status}) ->
+            {c1, c2, status}
+          end)
+
+          {
+            state,
+            fn(%{private: private} = state) ->
+              {{c1, c2, _}, private} = Map.pop(private, ref)
+              %{state | private: private}
               |> c1.()
               |> c2.()
-              |> State.put_private(ref, {c1, c2, true})
-              |> fun.(value)
-          end
-        end
+            end
+          }
       end
-
-      {state, c1} = f(a, state, once.(rej), once.(res))
-      {state, c2} = f(b, state, once.(rej), once.(res))
-
-      {
-        State.put_private(state, ref, {c1, c2, false}),
-        fn(%{private: private} = state) ->
-          {{c1, c2, _}, private} = Map.pop(private, ref)
-          %{state | private: private}
-          |> c1.()
-          |> c2.()
-        end
-      }
     end
     |> new()
+  end
+
+  defp race_once(fun, ref) do
+    fn(%{private: private} = state, value) ->
+      case Map.get(private, ref) do
+        {_, _, true} ->
+          state
+          |> State.delete_private(ref)
+        {c1, c2, false} ->
+          state
+          |> c1.()
+          |> c2.()
+          |> State.put_private(ref, {c1, c2, true})
+          |> fun.(value)
+      end
+    end
   end
 
   def fold(future, f, g) do
@@ -401,6 +412,53 @@ defmodule Etude.Future do
         _ ->
           state
       end
+    end
+  end
+
+  def cache(future, key \\ mkref) do
+    fn(%{private: private} = state, rej, res) ->
+      case Etude.Cache.get(state, key) do
+        nil ->
+          case Map.fetch(private, key) do
+            {:ok, subs} ->
+              %{state | private: Map.put(private, key, [{rej, res} | subs])}
+            :error ->
+              state = %{state | private: Map.put(private, key, [{rej, res}])}
+              f(future, state, cache_handle(key, 0, :error), cache_handle(key, 1, :ok))
+          end
+        {:ok, value} ->
+          res.(state, value)
+        {:error, error} ->
+          rej.(state, error)
+      end
+    end
+    |> new()
+  end
+
+  defp cache_handle(key, elem, status) do
+    fn(%{private: private} = state, value) ->
+      state = Etude.Cache.put(state, key, {status, value})
+      {cancels, state} =
+        private
+        |> Map.get(key)
+        |> :lists.reverse()
+        |> Enum.map_reduce(state, fn(handlers, state) ->
+          fun = elem(handlers, elem)
+          case fun.(state, value) do
+            {state, cancel} ->
+              {cancel, state}
+            state ->
+              {&noop/1, state}
+          end
+        end)
+      {
+        state,
+        fn(state) ->
+          Enum.reduce(cancels, state, fn(cancel, state) ->
+            cancel.(state)
+          end)
+        end
+      }
     end
   end
 

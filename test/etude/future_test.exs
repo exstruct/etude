@@ -22,7 +22,7 @@ defmodule Test.Etude.Future do
   end
 
   test "retry" do
-    try_catch(fn ->
+    wrap(fn ->
       if :rand.uniform > 0.1 do
         throw :fail
       end
@@ -128,10 +128,25 @@ defmodule Test.Etude.Future do
   test "race b" do
     a = send_after(:first, 20)
     b = send_after(:second, 10)
-
     race(a, b)
     |> f()
     |> assert_term_match({:ok, :second})
+  end
+
+  test "race immediate a" do
+    a = of(1)
+    b = of(2)
+    race(a, b)
+    |> f()
+    |> assert_term_match({:ok, 1})
+  end
+
+  test "race immediate b" do
+    a = send_after(1, 10)
+    b = of(2)
+    race(a, b)
+    |> f()
+    |> assert_term_match({:ok, 2})
   end
 
   test "fold success" do
@@ -205,6 +220,17 @@ defmodule Test.Etude.Future do
       |> Enum.map(&(map(&1, fn(v) -> v - 1 end)))
       |> parallel()
     end)
+  end
+
+  test "cache" do
+    future = encase(&:rand.uniform/1, [10]) |> cache()
+    {:ok, [n | _] = list} = 1..20
+    |> Enum.map(fn(_) -> future end)
+    |> parallel()
+    |> f()
+
+    l = 1..20 |> Enum.map(fn(_) -> n end)
+    assert l == list
   end
 
   defp p_success(fun) do
