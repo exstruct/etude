@@ -1,22 +1,41 @@
 defimpl Etude.Matchable, for: [Map, Any] do
-  alias Etude.Match.{Literal,Utils}
+  alias Etude.Match.Literal
 
   def compile(map) when map_size(map) == 0 do
     Literal.compile(map)
   end
   def compile(map) do
-    patterns = :maps.fold(fn(k, v, acc) ->
-      k_p = @protocol.compile_body(k) # TODO this isn't exactly a body function
-      v_p = @protocol.compile(v)
-      [(&exec(k_p, v_p, &1, &2, &3)) | acc]
-    end, [], map) |> :lists.reverse()
+    l = Enum.map(map, fn({key, value}) ->
+      key_fun = @protocol.compile_body(key)
+      value_fun = @protocol.compile(value)
+      fn(m, b) ->
+        b
+        |> key_fun.()
+        |> Etude.Traversable.traverse()
+        |> Etude.Future.chain(fn(k) ->
+          case Map.fetch(m, k) do
+            {:ok, v} ->
+              v
+              |> value_fun.(b)
+              |> Etude.Future.map(&({k, &1}))
+            :error ->
+              Etude.Future.reject({m, k})
+          end
+        end)
+      end
+    end)
 
-    fn(value, state, b) ->
-      Etude.Thunk.resolve(value, state, fn
-        (value, state) when is_map(value) ->
-          Utils.exec_patterns(patterns, value, state, b)
-        (_, state) ->
-          {:error, state}
+    fn(v, b) ->
+      v
+      |> Etude.Future.to_term()
+      |> Etude.Future.chain(fn
+        (v) when is_map(v) ->
+          l
+          |> Enum.map(&(&1.(v, b)))
+          |> Etude.Future.parallel()
+          |> Etude.Future.map(&:maps.from_list/1)
+        (v) ->
+          Etude.Future.reject({map, v})
       end)
     end
   end
@@ -25,44 +44,25 @@ defimpl Etude.Matchable, for: [Map, Any] do
     Literal.compile_body(map)
   end
   def compile_body(map) do
-    ## TODO OPTIMIZE write a version that doesn't convert between maps and keywords?
-    keyword_b = :maps.to_list(map) |> @protocol.compile_body()
-    fn(state, b) ->
-      case keyword_b.(state, b) do
-        {:ok, keyword, state} ->
-          {:ok, :maps.from_list(keyword), state}
-        error ->
-          error
-      end
-    end
-  end
-
-  defp exec(k_p, v_p, map, state, b) do
-    case k_p.(state, b) do
-      {:ok, key, state} ->
-        Etude.Thunk.resolve_recursive(key, state, fn(key, state) ->
-          exec_value(key, v_p, map, state, b)
+    funs = map
+    |> :maps.to_list()
+    |> Enum.map(fn({k, v}) ->
+      k_f = @protocol.compile_body(k)
+      v_f = @protocol.compile_body(v)
+      fn(b) ->
+        b
+        |> k_f.()
+        |> Etude.Future.map(fn(k) ->
+          {k, v_f.(b)}
         end)
-      {:error, state} ->
-        {:error, state}
-    end
-  end
+      end
+    end)
 
-  defp exec_value(key, v_p, map, state, b) do
-    case Map.fetch(map, key) do
-      :error ->
-        {:error, state}
-      {:ok, value} ->
-        case v_p.(value, state, b) do
-          {:await, thunk, state} ->
-            Utils.continuation(thunk, state, fn(value, state) ->
-              exec_value(key, v_p, Map.put(map, key, value), state, b)
-            end)
-          {:ok, value, state} ->
-            {:ok, Map.put(map, key, value), state}
-          {:error, state} ->
-            {:error, state}
-        end
+    fn(b) ->
+      funs
+      |> Enum.map(&(&1.(b)))
+      |> Etude.Future.parallel()
+      |> Etude.Future.map(&:maps.from_list/1)
     end
   end
 end

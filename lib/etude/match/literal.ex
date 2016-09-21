@@ -12,22 +12,14 @@ defmodule Etude.Match.Literal do
   end
 
   def compile(l) do
-    fn
-      (^l, state, _b) ->
-        {:ok, l, state}
-      (value, state, _b) ->
-        Etude.Thunk.resolve(value, state, fn
-          (^l, state) ->
-            {:ok, l, state}
-          (_, state) ->
-            {:error, state}
-        end)
+    fn(v, _) ->
+      Etude.Unifiable.unify(l, v)
     end
   end
 
   def compile_body(l) do
-    fn(state, _) ->
-      {:ok, l, state}
+    fn(_) ->
+      Etude.Future.of(l)
     end
   end
 end

@@ -1,41 +1,53 @@
 defmodule Etude.Match.Binding do
   defstruct [:name]
+end
 
-  defimpl Etude.Matchable do
-    alias Etude.Match.Utils
+defimpl Etude.Matchable, for: Etude.Match.Binding do
+  alias Etude.Match.Utils
+  require Etude.Future
 
-    def compile(%{name: :_}) do
-      fn(value, state, _b) ->
-        {:ok, value, state}
-      end
+  def compile(%{name: :_}) do
+    fn(value, _b) ->
+      Etude.Future.of(value)
     end
-    def compile(%{name: name}) do
-      fn(value, state, b) ->
+  end
+  def compile(%{name: name}) do
+    fn(v, b) ->
+      fn(state, rej, res) ->
         case Utils.fetch_binding(state, b, name) do
           :error ->
-            {:ok, value, Utils.put_binding(state, b, name, value)}
-          {:ok, ^value} ->
-            {:ok, value, state}
+            state
+            |> Utils.put_binding(b, name, v)
+            |> res.(v)
+          {:ok, ^v} ->
+            res.(state, v)
           {:ok, binding} ->
-            Etude.Thunk.resolve_all([value, binding], state, fn
-              ([v, v], state) ->
-                {:ok, v, Utils.put_binding(state, b, name, v)}
-              ([_, _], state) ->
-                {:error, state}
+            Etude.Unifiable.unify(binding, v)
+            |> Etude.Future.chain(fn(v) ->
+              Etude.Future.new(fn(state, _rej, res) ->
+                state
+                |> Utils.put_binding(b, name, v)
+                |> res.(v)
+              end)
             end)
+            |> Etude.Forkable.fork(state, rej, res)
         end
       end
+      |> Etude.Future.new()
     end
+  end
 
-    def compile_body(%{name: name}) do
-      fn(state, b) ->
+  def compile_body(%{name: name} = binding) do
+    fn(b) ->
+      fn(state, rej, res) ->
         case Utils.fetch_binding(state, b, name) do
           :error ->
-            {:error, state}
+            rej.(state, binding)
           {:ok, value} ->
-            {:ok, value, state}
+            res.(state, value)
         end
       end
+      |> Etude.Future.new()
     end
   end
 end

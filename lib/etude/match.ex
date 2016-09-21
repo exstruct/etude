@@ -7,49 +7,36 @@ end
 
 defmodule Etude.Match do
   alias Etude.Matchable
-  alias Etude.Match.Utils
+  require Etude.Future
 
-  defstruct [:fun]
-
-  def binding(name) do
+  def binding(name) when is_atom(name) do
     %__MODULE__.Binding{name: name}
+  end
+  def binding(%__MODULE__.Binding{} = b) do
+    b
   end
 
   def literal(value) do
     %__MODULE__.Literal{value: value}
   end
 
-  @guard_0 ~w(
-    node self
-  )a
-
-  @guard_1 ~w(
-    is_atom is_float is_integer is_list is_number is_pid is_port is_reference is_tuple is_map is_binary is_function
-
-    not abs hd length map_size round size tl tuple_size trunc
-  )a
-
-  @guard_2 ~w(
-    and or xor andalso orelse
-
-    element + - * div rem band bor bxor bnot bsl bsr > >= < =< =:= == =/= /=
-  )a
-
-  def call(fun, args) when ((fun in @guard_0) and length(args) == 0) or
-                           ((fun in @guard_1) and length(args) == 1) or
-                           ((fun in @guard_2) and length(args) == 2) do
+  def call(fun, args) do
     %__MODULE__.Call{fun: fun, args: args}
+  end
+
+  def binary(fun) do
+    %__MODULE__.Binary{fun: fun}
+  end
+
+  def with_bindings(fun) do
+    %__MODULE__.Scope{fun: fun}
   end
 
   def compile({pattern, guard, body}) do
     compile(pattern, guard, body)
   end
   def compile(pattern, guard, body) do
-    %__MODULE__{fun: compile_fun(pattern, guard, body)}
-  end
-
-  def exec(%__MODULE__{fun: fun}, value, state, b) do
-    fun.(value, state, b)
+    compile_fun(pattern, guard, body)
   end
 
   defp compile_fun(pattern, nil, body) do
@@ -60,37 +47,26 @@ defmodule Etude.Match do
     guard_fun = Matchable.compile_body(guard)
     body_fun = Matchable.compile_body(body)
 
-    exec_guard = &exec_guard_fun(guard_fun, body_fun, &1, &2)
+    fn(value, bindings) ->
+      b = :erlang.make_ref()
 
-    fn(value, state, bindings) ->
-      bindings_ref = :erlang.make_ref()
-      state = Etude.State.put_private(state, bindings_ref, bindings)
-      exec_pattern_fun(pattern_fun, exec_guard, value, state, bindings_ref)
-    end
-  end
+      pattern = pattern_fun.(value, b)
+      guard = guard_fun.(b)
+      body = body_fun.(b)
 
-  defp exec_pattern_fun(pattern_fun, guard_fun, value, state, b) do
-    case pattern_fun.(value, state, b) do
-      {:ok, _, state} ->
-        guard_fun.(state, b)
-      {:await, thunk, state} ->
-        Utils.continuation(thunk, state, &exec_pattern_fun(pattern_fun, guard_fun, &1, &2, b))
-      {:error, state} ->
-        {:error, state}
-    end
-  end
+      fn(state, rej, res) ->
+        state = Etude.State.put_private(state, b, bindings)
 
-  def exec_guard_fun(guard_fun, body_fun, state, b) do
-    case guard_fun.(state, b) do
-      {:ok, guard_thunk, state} ->
-        Etude.Thunk.resolve_recursive(guard_thunk, state, fn
-          (true, state) ->
-            body_fun.(state, b)
-          (_, state) ->
-            {:error, state}
+        Etude.Forkable.fork(pattern, state, rej, fn(state, _) ->
+          Etude.Forkable.fork(guard, state, rej, fn
+            (state, true) ->
+              Etude.Forkable.fork(body, state, rej, res)
+            (state, value) ->
+              rej.(state, value)
+          end)
         end)
-      {:error, state} ->
-        {:error, state}
+      end
+      |> Etude.Future.new()
     end
   end
 end

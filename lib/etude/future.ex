@@ -1,9 +1,5 @@
-defprotocol Etude.Forkable do
-  def fork(future, state, rej, res)
-end
-
 defmodule Etude.Future do
-  defstruct [fun: nil, guarded: true]
+  defstruct [fun: nil, guarded: true, location: nil]
   alias Etude.{Forkable,State}
 
   defmodule Error do
@@ -17,7 +13,23 @@ defmodule Etude.Future do
   # creation
 
   defmacro put_location(future) do
-    loc = case __CALLER__ do
+    loc = extract_location(__CALLER__)
+    quote do
+      unquote(future)
+      |> unquote(__MODULE__).location(unquote(Macro.escape(loc)))
+    end
+  end
+
+  defmacro new(fun, guarded \\ true) do
+    loc = extract_location(__CALLER__)
+    quote do
+      %unquote(__MODULE__){fun: unquote(fun), guarded: unquote(guarded)}
+      |> unquote(__MODULE__).location(unquote(Macro.escape(loc)))
+    end
+  end
+
+  defp extract_location(caller) do
+    case caller do
       %{module: m, function: {fun, a}, file: f, line: l} ->
         f = Path.relative_to_cwd(f)
         {m, fun, a, [line: l, file: f]}
@@ -25,17 +37,10 @@ defmodule Etude.Future do
         f = Path.relative_to_cwd(f)
         {:erl_eval, :expr, 2, [line: l, file: f]}
     end
-    quote do
-      unquote(future)
-      |> location(unquote(Macro.escape(loc)))
-    end
   end
 
-  defmacrop new(fun, guarded \\ true) do
-    quote do
-      %__MODULE__{fun: unquote(fun), guarded: unquote(guarded)}
-      |> put_location()
-    end
+  def forkable?(value) do
+    Etude.Forkable.impl_for(value) != Etude.Forkable.Any
   end
 
   def of(value) do
@@ -69,12 +74,12 @@ defmodule Etude.Future do
     |> new()
   end
 
-  def timeout_after(future, time) do
-    send_after(:timeout, time)
+  def timeout(future, time) do
+    delay(:timeout, time)
     |> chain(fn(_) ->
       wrap(fn -> throw :timeout end)
     end)
-    |> race(future)
+    |> concat(future)
     |> put_location()
   end
 
@@ -96,7 +101,7 @@ defmodule Etude.Future do
     |> put_location()
   end
 
-  def send_after(value, time) do
+  def delay(value, time) do
     mailbox(fn(parent, ref) ->
       t = :erlang.send_after(time, parent, ref)
       fn() ->
@@ -157,7 +162,7 @@ defmodule Etude.Future do
       end
       f(future, state, pop.(rej), pop.(res))
     end
-    %__MODULE__{fun: fun}
+    %__MODULE__{fun: fun, location: location}
   end
 
   def map(future, f) do
@@ -203,11 +208,22 @@ defmodule Etude.Future do
     |> new()
   end
 
-  def ap(fun_f, arg_f) do
-    [fun_f, arg_f]
+  def ap(fun_f, args_f) do
+    [fun_f, args_f]
     |> parallel()
-    |> chain(fn([fun | args]) ->
+    |> chain(fn([fun, args]) ->
       apply(fun, args)
+    end)
+    |> put_location()
+  end
+
+  def call(mod_f, fun_f, args_f) do
+    [mod_f, fun_f, args_f]
+    |> parallel()
+    |> chain(fn([mod, fun, args]) ->
+      wrap(fn() ->
+        apply(mod, fun, args)
+      end)
     end)
     |> put_location()
   end
@@ -292,7 +308,12 @@ defmodule Etude.Future do
     end
   end
 
-  def race(a, b) do
+  def concat(a, b) do
+    [a, b]
+    |> race()
+  end
+
+  def race([a, b]) do
     fn(state, rej, res) ->
       ref = mkref()
 
@@ -462,9 +483,32 @@ defmodule Etude.Future do
     end
   end
 
-  @compile {:inline, [f: 4]}
+  #def match(pattern, guard, body) do
+  #  Etude.Match.compile(pattern, guard, body)
+  #end
+
+  #def match(pattern, guard, body, value, bindings \\ %{}) do
+  #  match(pattern, guard, body).(value, bindings)
+  #end
+
+  def to_term(future) do
+    chain(future, fn(value) ->
+      case Forkable.impl_for(value) do
+        Forkable.Any ->
+          of(value)
+        _ ->
+          to_term(value)
+      end
+    end)
+  end
+
   defp f(future, state, rej, res) do
-    Forkable.fork(future, state, rej, res)
+    case Forkable.fork(future, state, rej, res) do
+      {state = %State{}, cancel} when is_function(cancel, 1) ->
+        {state, cancel}
+      state = %State{} ->
+        {state, &noop/1}
+    end
   end
 
   defp noop(s) do
@@ -476,42 +520,12 @@ defmodule Etude.Future do
   end
 end
 
-defimpl Etude.Forkable, for: Etude.Future do
-  alias Etude.State
-
-  def fork(%{guarded: true} = f, state, rej, res) do
-    ref = :erlang.unique_integer()
-    {state, cancel} = fork(%{f | guarded: false}, state, once(rej, ref), once(res, ref))
-
-    {state, fn(%{private: private} = state) ->
-      case Map.fetch(private, ref) do
-        {:ok, true} ->
-          state
-        :error ->
-          state
-          |> cancel.()
-          |> State.put_private(ref, true)
-      end
-    end}
+defimpl Inspect, for: Etude.Future do
+  def inspect(%{location: nil}, _) do
+    "#Etude.Future<>"
   end
-  def fork(%{fun: fun}, state, rej, res) do
-    case fun.(state, rej, res) do
-      {state, cancel} ->
-        {state, cancel}
-      %Etude.State{} = state ->
-        {state, fn(s) -> s end}
-    end
-  end
-
-  defp once(fun, ref) do
-    fn(%{private: private} = state, value) ->
-      case Map.fetch(private, ref) do
-        {:ok, true} ->
-          state
-        :error ->
-          state = State.put_private(state, ref, true)
-          fun.(state, value)
-      end
-    end
+  def inspect(%{location: {module, fun, a, _}}, _) do
+    mfa = Exception.format_mfa(module, fun, a)
+    "#Etude.Future<#{mfa}>"
   end
 end

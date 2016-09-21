@@ -16,7 +16,7 @@ defmodule Test.Etude.Future do
   end
 
   test "send_after" do
-    send_after("Hello send_after", 100)
+    delay("Hello send_after", 100)
     |> f()
     |> assert_term_match({:ok, "Hello send_after"})
   end
@@ -34,8 +34,8 @@ defmodule Test.Etude.Future do
   end
 
   test "timeout_after" do
-    send_after("SHOULDN'T HAPPEN", 1000)
-    |> timeout_after(10)
+    delay("SHOULDN'T HAPPEN", 1000)
+    |> timeout(10)
     |> retry(5)
     |> f()
     |> assert_term_match({:error, _})
@@ -117,34 +117,34 @@ defmodule Test.Etude.Future do
     |> assert_term_match({:ok, :swapped})
   end
 
-  test "race a" do
-    a = send_after(:first, 10)
-    b = send_after(:second, 20)
-    race(a, b)
+  test "concat a" do
+    a = delay(:first, 10)
+    b = delay(:second, 20)
+    concat(a, b)
     |> f()
     |> assert_term_match({:ok, :first})
   end
 
-  test "race b" do
-    a = send_after(:first, 20)
-    b = send_after(:second, 10)
-    race(a, b)
+  test "concat b" do
+    a = delay(:first, 20)
+    b = delay(:second, 10)
+    concat(a, b)
     |> f()
     |> assert_term_match({:ok, :second})
   end
 
-  test "race immediate a" do
+  test "concat immediate a" do
     a = of(1)
     b = of(2)
-    race(a, b)
+    concat(a, b)
     |> f()
     |> assert_term_match({:ok, 1})
   end
 
-  test "race immediate b" do
-    a = send_after(1, 10)
+  test "concat immediate b" do
+    a = delay(1, 10)
     b = of(2)
-    race(a, b)
+    concat(a, b)
     |> f()
     |> assert_term_match({:ok, 2})
   end
@@ -240,7 +240,7 @@ defmodule Test.Etude.Future do
 
       l
       |> Enum.map(fn(i) ->
-        send_after(i, :rand.uniform(20))
+        delay(i, :rand.uniform(20))
       end)
       |> fun.()
       |> f()
@@ -259,7 +259,7 @@ defmodule Test.Etude.Future do
         (i) when i == final ->
           reject(i)
         (i) ->
-          send_after(i, :rand.uniform(20))
+          delay(i, :rand.uniform(20))
       end)
       |> fun.()
       |> f()

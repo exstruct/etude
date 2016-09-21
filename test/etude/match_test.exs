@@ -122,18 +122,11 @@ defmodule Test.Etude.Match do
       },
       body: Match.binding(:bar),
       assertions: [
-        # %{
-        #   bindings: %{foo: 2},
-        #   value: %{[1,2] => :bar},
-        #   body: :bar
-        # },
         %{
-          value: %{[1,3] => :baz},
-          body: :baz
+          bindings: %{foo: 2},
+          value: %{[1,2] => :bar},
+          body: :bar
         },
-        %{
-          value: %{[1] => :baz}
-        }
       ]
     },
     %{
@@ -167,17 +160,6 @@ defmodule Test.Etude.Match do
     }
   ]
 
-  defmacrop assert_body(:error) do
-    quote do
-      :error
-    end
-  end
-  defmacrop assert_body({:ok, body}) do
-    quote do
-      unquote(Macro.escape(body))
-    end
-  end
-
   for test <- tests do
     for assertion <- test.assertions do
       bindings = assertion[:bindings] || %{}
@@ -189,99 +171,68 @@ defmodule Test.Etude.Match do
           unquote(Macro.escape(test[:body]))
         )
 
-        assert = fn(body, _state) ->
-          assert assert_body(unquote(Map.fetch(assertion, :body))) = body
-          :ok
-        end
+        value = unquote(Macro.escape(assertion.value))
+        bindings = unquote(Macro.escape(bindings))
 
-        test = fn(bindings, value) ->
-          v = Match.exec(m, value, %Etude.State{}, bindings)
-
-          case v do
-            {:error, state} ->
-              assert.(:error, state)
-            {:ok, value, state} ->
-              resolve(value, state, assert)
-            {:await, thunk, state} ->
-              resolve(thunk, state, assert)
+        body_check = unquote(
+          case Map.fetch(assertion, :body) do
+            :error ->
+              quote location: :keep do
+                fn(body) ->
+                  assert {:error, _} = body
+                end
+              end
+            {:ok, body} ->
+              quote location: :keep do
+                fn(body) ->
+                  assert {:ok, unquote(Macro.escape(body))} = body
+                end
+              end
           end
-        end
+        )
 
-        for _ <- 0..1000 do
-          :ok = test.(
-            thunkify_b(unquote(Macro.escape(bindings))),
-            thunkify(unquote(Macro.escape(assertion.value)))
-          )
-        end
+        value
+        |> Etude.Future.of()
+        |> m.(bindings)
+        |> f()
+        |> body_check.()
       end
     end
   end
 
-  defp resolve(thunk, state, fun) do
-    case Etude.resolve(thunk, state) do
-      {:ok, value, state} ->
-        fun.(value, state)
-      {:error, state} ->
-        fun.(:error, state)
-    end
-  end
-
-  defp thunkify(v) do
-    if :rand.uniform() > 0.5 do
-      thunkify_t(v)
-    else
-      v
-    end
-  end
-
-  defp thunkify_b(map) do
-    map
-    |> Enum.map(fn({k, v}) -> {k, thunkify(v)} end)
-    |> :maps.from_list()
-  end
-
-  defp thunkify_t(map) when is_map(map) do
-    map
-    |> Enum.map(fn({k, v}) -> {k, thunkify(v)} end)
-    |> :maps.from_list()
-    |> maybe_thunkify()
-  end
-  defp thunkify_t(t) when is_tuple(t) do
-    t
-    |> :erlang.tuple_to_list()
-    |> Enum.map(&thunkify/1)
-    |> :erlang.list_to_tuple()
-    |> maybe_thunkify()
-  end
-  defp thunkify_t([head | tail]) do
-    [thunkify(head) | thunkify(tail)]
-    |> maybe_thunkify()
-  end
-  defp thunkify_t(value) do
-    maybe_thunkify(value)
-  end
-
-  defp maybe_thunkify(value) do
-    if :rand.uniform > 0.5 do
-      await(maybe_thunkify(value))
-    else
-      thunk(value)
-    end
-  end
-
-  defp await(value) do
-    cont([value], fn([value], s) ->
-      {:await, value, s}
+  test "binary destruct" do
+    p = Match.binary(fn("Hello, " <> name) ->
+      %{name: name}
     end)
+
+    m = Match.compile(p, nil, Match.binding(:name))
+
+    m.("Hello, Joe", %{})
+    |> f()
+    |> assert_term_match({:ok, "Joe"})
+
+    m.("Hello Robert", %{})
+    |> f()
+    |> assert_term_match({:error, _})
   end
 
-  defp thunk(value) do
-    cont([value], fn([value], s) ->
-      {:ok, value, s}
+  test "with bindings" do
+    b = Match.with_bindings(fn(%{name: name}) ->
+      name
+      |> Etude.Future.to_term()
+      |> Etude.Future.map(&("Hello, " <> &1))
     end)
+
+    m = Match.compile(Match.binding(:name), nil, b)
+
+    m.("Mike", %{})
+    |> f()
+    |> assert_term_match({:ok, "Hello, Mike"})
   end
 
-  defp cont(arguments, fun) do
-    %Etude.Thunk.Continuation{function: fun, arguments: arguments}
+  defp f(future) do
+    future
+    |> Etude.Traversable.traverse()
+    |> Etude.fork()
   end
 end

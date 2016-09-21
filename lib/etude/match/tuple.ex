@@ -1,54 +1,41 @@
 defimpl Etude.Matchable, for: Tuple do
-  alias Etude.Match.Utils
-
   def compile({}) do
     Etude.Match.Literal.compile({})
   end
   def compile(tuple) do
     patterns = :erlang.tuple_to_list(tuple) |> Enum.map(&@protocol.compile/1)
-    match = &exec(patterns, 0, &1, &2, &3)
     size = tuple_size(tuple)
 
-    fn(value, state, b) ->
-      Etude.Thunk.resolve(value, state, fn
-        (value, state) when is_tuple(value) and tuple_size(value) == size ->
-          match.(value, state, b)
-        (_, state) ->
-          {:error, state}
+    fn(v, b) ->
+      v
+      |> Etude.Future.to_term()
+      |> Etude.Future.chain(fn
+        (v) when is_tuple(v) and tuple_size(v) == size ->
+          compare(patterns, v, b, 0, [])
+        (v) ->
+          Etude.Future.reject({tuple, v})
       end)
     end
   end
 
+  defp compare([], _, _, _, acc) do
+    acc
+    |> :lists.reverse()
+    |> Etude.Future.parallel()
+    |> Etude.Future.map(&:erlang.list_to_tuple/1)
+  end
+  defp compare([pattern | patterns], subject, b, idx, acc) do
+    future = elem(subject, idx) |> pattern.(b)
+    compare(patterns, subject, b, idx + 1, [future | acc])
+  end
+
   def compile_body(tuple) do
     bodies = :erlang.tuple_to_list(tuple) |> Enum.map(&@protocol.compile_body/1)
-    init = :erlang.make_tuple(tuple_size(tuple), nil)
-    &exec_body(bodies, 0, init, &1, &2)
-  end
 
-  defp exec([], _, tuple, state, _) do
-    {:ok, tuple, state}
-  end
-  defp exec([pattern | patterns] = all, idx, tuple, state, b) do
-    case pattern.(elem(tuple, idx), state, b) do
-      {:ok, value, state} ->
-        exec(patterns, idx + 1, put_elem(tuple, idx, value), state, b)
-      {:await, thunk, state} ->
-        ## TODO OPTIMIZE keep going here
-        Utils.continuation(thunk, state, (&exec(all, idx, put_elem(tuple, idx, &1), &2, b)))
-      {:error, state} ->
-        {:error, state}
-    end
-  end
-
-  defp exec_body([], _, tuple, state, _) do
-    {:ok, tuple, state}
-  end
-  defp exec_body([body | bodies], idx, tuple, state, b) do
-    case body.(state, b) do
-      {:ok, v, state} ->
-        exec_body(bodies, idx + 1, put_elem(tuple, idx, v), state, b)
-      error ->
-        error
+    fn(b) ->
+      bodies
+      |> Enum.map(&(&1.(b)))
+      |> :erlang.list_to_tuple()
     end
   end
 end

@@ -18,8 +18,10 @@ defmodule Etude.Dispatch do
   defmacro __before_compile__(_) do
     quote do
       defp lookup(module, function, arity) do
-        thunk = function_exported?(module, :__etude__, 3) && module.__etude__(function, arity, __MODULE__)
-        thunk || Etude.Thunk.RemoteApplication.new(module, function, arity, :shallow)
+        future = function_exported?(module, :__etude__, 3) && module.__etude__(function, arity, __MODULE__)
+        future || Etude.Future.of(fn(args) ->
+          apply(module, function, args)
+        end)
       end
     end
   end
