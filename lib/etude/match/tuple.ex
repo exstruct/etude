@@ -13,7 +13,7 @@ defimpl Etude.Matchable, for: Tuple do
         (v) when is_tuple(v) and tuple_size(v) == size ->
           compare(patterns, v, b, 0, [])
         (v) ->
-          Etude.Future.reject({tuple, v})
+          Etude.Future.reject(%MatchError{term: v})
       end)
     end
   end

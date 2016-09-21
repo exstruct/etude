@@ -13,7 +13,7 @@ defimpl Etude.Matchable, for: List do
         (v) when is_list(v) ->
           compare(l_f, v, b, [])
         (v) ->
-          Etude.Future.reject({l, v})
+          Etude.Future.reject(%MatchError{term: v})
       end)
     end
   end
@@ -31,8 +31,8 @@ defimpl Etude.Matchable, for: List do
     f = a.(b, bindings)
     compare([], [], bindings, [f | acc])
   end
-  defp compare(a, b, _, _acc) do
-    Etude.Future.reject({a, b})
+  defp compare(_, b, _, _acc) do
+    Etude.Future.reject(%MatchError{term: b})
   end
 
   def compile_body([]) do

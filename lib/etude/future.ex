@@ -188,24 +188,31 @@ defmodule Etude.Future do
 
   def chain(future, fun) do
     fn(state, rej, res) ->
-      f(future, state, rej, fn(state, value) ->
-        value
-        |> fun.()
-        |> f(state, rej, res)
-      end)
+      f(future, state, rej, chain_cont(fun, rej, res))
     end
     |> new()
   end
 
   def chain_rej(future, fun) do
     fn(state, rej, res) ->
-      f(future, state, fn(state, value) ->
-        value
-        |> fun.()
-        |> f(state, rej, res)
-      end, res)
+      f(future, state, chain_cont(fun, rej, res), res)
     end
     |> new()
+  end
+
+  def bichain(future, f, g) do
+    fn(state, rej, res) ->
+      f(future, state, chain_cont(f, rej, res), chain_cont(g, rej, res))
+    end
+    |> new()
+  end
+
+  defp chain_cont(fun, rej, res) do
+    fn(state, value) ->
+      value
+      |> fun.()
+      |> f(state, rej, res)
+    end
   end
 
   def ap(fun_f, args_f) do

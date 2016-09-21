@@ -11,11 +11,36 @@ defimpl Etude.Traversable, for: Etude.Future do
 end
 
 defimpl Etude.Traversable, for: List do
-  def traverse(value, map) do
-    value
-    |> Enum.map(&@protocol.traverse(&1, map))
-    |> Etude.Future.parallel()
+  def traverse(list, map) do
+    list
+    |> gather([], map)
     |> Etude.Future.chain(map)
+  end
+
+  defp gather([], acc, _map) do
+    acc
+    |> :lists.reverse()
+    |> Etude.Future.parallel()
+  end
+  defp gather([head | tail], acc, map) do
+    head = @protocol.traverse(head, map)
+    gather(tail, [head | acc], map)
+  end
+  defp gather(tail, acc, map) do
+    head = Etude.Future.parallel(acc)
+    tail = @protocol.traverse(tail, map)
+    [head, tail]
+    |> Etude.Future.parallel()
+    |> Etude.Future.map(fn([head, tail]) ->
+      unwind(head, tail)
+    end)
+  end
+
+  defp unwind([], acc) do
+    acc
+  end
+  defp unwind([head | tail], acc) do
+    unwind(tail, [head | acc])
   end
 end
 

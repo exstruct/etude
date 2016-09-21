@@ -23,10 +23,10 @@ defimpl Etude.Matchable, for: Etude.Match.Binary do
               |> Etude.Future.map(fn(_) -> bin end)
           end)
           |> Etude.Future.chain_rej(fn(_) ->
-            Etude.Future.reject({bin, :bad_match})
+            Etude.Future.reject(%MatchError{term: bin})
           end)
         (other) ->
-          Etude.Future.reject({other, :expected_binary})
+          Etude.Future.reject(%MatchError{term: other})
       end)
     end
   end

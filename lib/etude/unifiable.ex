@@ -6,7 +6,7 @@ defmodule Etude.Unifiable do
   end
   def unify(a, b) do
     if !Future.forkable?(a) && !Future.forkable?(b) do
-      Future.reject({a, b})
+      Future.reject(%MatchError{term: b})
     else
       [
         Future.to_term(a),
@@ -40,8 +40,8 @@ defmodule Etude.Unifiable do
     compare_lists(a, b, [])
     |> Future.map(&:maps.from_list/1)
   end
-  defp compare(a, b) do
-    Future.reject({a, b})
+  defp compare(_, b) do
+    Future.reject(%MatchError{term: b})
   end
 
   defp compare_lists([], [], acc) do

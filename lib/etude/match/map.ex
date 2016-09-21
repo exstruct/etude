@@ -19,7 +19,7 @@ defimpl Etude.Matchable, for: [Map, Any] do
               |> value_fun.(b)
               |> Etude.Future.map(&({k, &1}))
             :error ->
-              Etude.Future.reject({m, k})
+              Etude.Future.reject(%MatchError{term: m})
           end
         end)
       end
@@ -35,7 +35,7 @@ defimpl Etude.Matchable, for: [Map, Any] do
           |> Etude.Future.parallel()
           |> Etude.Future.map(&:maps.from_list/1)
         (v) ->
-          Etude.Future.reject({map, v})
+          Etude.Future.reject(%MatchError{term: v})
       end)
     end
   end

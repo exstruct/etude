@@ -62,7 +62,7 @@ defmodule Etude.Match do
             (state, true) ->
               Etude.Forkable.fork(body, state, rej, res)
             (state, value) ->
-              rej.(state, value)
+              rej.(state, %CaseClauseError{term: value})
           end)
         end)
       end
