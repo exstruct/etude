@@ -1,4 +1,5 @@
 defmodule Etude.Match.Literal do
+  alias Etude.Match.Executable
   defstruct [:value]
 
   defimpl Etude.Matchable do
@@ -12,15 +13,26 @@ defmodule Etude.Match.Literal do
   end
 
   def compile(l) do
-    fn(v, _) ->
-      Etude.Unifiable.unify(l, v)
-    end
+    %Executable{
+      module: __MODULE__,
+      env: l
+    }
+  end
+
+  def __execute__(l, v, _) do
+    Etude.Unifiable.unify(l, v)
   end
 
   def compile_body(l) do
-    fn(_) ->
-      Etude.Future.of(l)
-    end
+    %Executable{
+      module: __MODULE__,
+      function: :__execute_body__,
+      env: l
+    }
+  end
+
+  def __execute_body__(l, _) do
+    Etude.Future.of(l)
   end
 end
 

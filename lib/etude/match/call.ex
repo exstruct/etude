@@ -2,6 +2,8 @@ defmodule Etude.Match.Call do
   defstruct [:fun, :args]
 
   defimpl Etude.Matchable do
+    alias Etude.Match.Executable
+
     def compile(call) do
       throw {:invalid_call, call}
     end
@@ -23,28 +25,46 @@ defmodule Etude.Match.Call do
     )a
 
     def compile_body(%{fun: fun, args: []}) when fun in @guard_0 do
-      fn(_) ->
-        Etude.Future.of(apply(:erlang, fun, []))
-      end
+      %Executable{
+        module: __MODULE__,
+        function: :__execute_0__,
+        env: fun
+      }
     end
     def compile_body(%{fun: fun, args: [arg]}) when fun in @guard_1 do
-      arg_fun = @protocol.compile_body(arg)
-      fn(b) ->
-        args = arg_fun.(b) |> Etude.Future.to_term() |> Etude.Future.map(&[&1])
-        Etude.Future.call(:erlang, fun, args)
-      end
+      arg = @protocol.compile_body(arg)
+      %Executable{
+        module: __MODULE__,
+        function: :__execute_1__,
+        env: {fun, arg}
+      }
     end
     def compile_body(%{fun: fun, args: [arg1, arg2]}) when fun in @guard_2 do
       arg_1 = @protocol.compile_body(arg1)
       arg_2 = @protocol.compile_body(arg2)
-      fn(b) ->
-        args = [
-          b |> arg_1.() |> Etude.Future.to_term(),
-          b |> arg_2.() |> Etude.Future.to_term()
-        ] |> Etude.Future.parallel()
+      %Executable{
+        module: __MODULE__,
+        function: :__execute_2__,
+        env: {fun, arg_1, arg_2}
+      }
+    end
 
-        Etude.Future.call(:erlang, fun, args)
-      end
+    def __execute_0__(fun, _) do
+      Etude.Future.of(apply(:erlang, fun, []))
+    end
+
+    def __execute_1__({fun, arg}, b) do
+      args = arg |> Executable.execute(b) |> Etude.Future.to_term() |> Etude.Future.map(&[&1])
+      Etude.Future.call(:erlang, fun, args)
+    end
+
+    def __execute_2__({fun, arg_1, arg_2}, b) do
+      args = [
+        arg_1 |> Executable.execute(b) |> Etude.Future.to_term(),
+        arg_2 |> Executable.execute(b) |> Etude.Future.to_term()
+      ] |> Etude.Future.parallel()
+
+      Etude.Future.call(:erlang, fun, args)
     end
   end
 end

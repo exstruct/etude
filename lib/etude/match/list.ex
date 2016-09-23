@@ -1,21 +1,26 @@
 defimpl Etude.Matchable, for: List do
-  alias Etude.Match.{Literal}
+  alias Etude.Match.{Executable,Literal}
 
   def compile([]) do
     Literal.compile([])
   end
   def compile(l) do
     l_f = c(l, [], :compile)
-    fn(v, b) ->
-      v
-      |> Etude.Future.to_term()
-      |> Etude.Future.chain(fn
-        (v) when is_list(v) ->
-          compare(l_f, v, b, [])
-        (v) ->
-          Etude.Future.reject(%MatchError{term: v})
-      end)
-    end
+    %Executable{
+      module: __MODULE__,
+      env: l_f
+    }
+  end
+
+  def __execute__(l_f, v, b) do
+    v
+    |> Etude.Future.to_term()
+    |> Etude.Future.chain(fn
+      (v) when is_list(v) ->
+        compare(l_f, v, b, [])
+      (v) ->
+        Etude.Future.reject(%MatchError{term: v})
+    end)
   end
 
   defp compare([], [], _, acc) do
@@ -24,11 +29,11 @@ defimpl Etude.Matchable, for: List do
     |> Etude.Future.parallel()
   end
   defp compare([a_h | a_t], [b_h | b_t], b, acc) do
-    f = a_h.(b_h, b)
+    f = Executable.execute(a_h, b_h, b)
     compare(a_t, b_t, b, [f | acc])
   end
-  defp compare(a, b, bindings, acc) when is_function(a, 2) do
-    f = a.(b, bindings)
+  defp compare(%Executable{} = a, b, bindings, acc) do
+    f = Executable.execute(a, b, bindings)
     compare([], [], bindings, [f | acc])
   end
   defp compare(_, b, _, _acc) do
@@ -40,11 +45,15 @@ defimpl Etude.Matchable, for: List do
   end
   def compile_body(l) do
     l = c(l, [], :compile_body)
-    fn(b) ->
-      for i <- l do
-        i.(b)
-      end
-    end
+    %Executable{
+      module: __MODULE__,
+      function: :__execute_body__,
+      env: l
+    }
+  end
+
+  def __execute_body__(l, b) do
+    Enum.map(l, &Executable.execute(&1, b))
   end
 
   defp c([], acc, _fun) do

@@ -498,6 +498,18 @@ defmodule Etude.Future do
   #  match(pattern, guard, body).(value, bindings)
   #end
 
+  def match_cases(value, []) do
+    reject(%MatchError{term: value})
+  end
+  def match_cases(value, [{match, scope, body} | clauses]) do
+    bichain(match.(value, scope), fn
+      (%{__struct__: s}) when s in [MatchError, CaseClauseError] ->
+        match_cases(value, clauses)
+      (error) ->
+        reject(error)
+    end, body)
+  end
+
   def to_term(future) do
     chain(future, fn(value) ->
       case Forkable.impl_for(value) do

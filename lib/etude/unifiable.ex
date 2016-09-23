@@ -52,4 +52,10 @@ defmodule Etude.Unifiable do
   defp compare_lists([a_h | a_t], [b_h | b_t], acc) do
     compare_lists(a_t, b_t, [unify(a_h, b_h) | acc])
   end
+  defp compare_lists([], b, _) do
+    Future.reject(%MatchError{term: b})
+  end
+  defp compare_lists(_, [], _) do
+    Future.reject(%MatchError{term: []})
+  end
 end

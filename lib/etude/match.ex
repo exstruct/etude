@@ -7,6 +7,7 @@ end
 
 defmodule Etude.Match do
   alias Etude.Matchable
+  alias __MODULE__.Executable
   require Etude.Future
 
   def binding(name) when is_atom(name) do
@@ -32,8 +33,16 @@ defmodule Etude.Match do
     %__MODULE__.Scope{fun: fun}
   end
 
-  def compile({pattern, guard, body}) do
-    compile(pattern, guard, body)
+  def union(a, b) do
+    %__MODULE__.Union{patterns: [a, b]}
+  end
+
+  def compile(pattern) do
+    compile(pattern, true)
+  end
+  def compile(pattern, guard) do
+    body = %__MODULE__.Scope{}
+    compile_fun(pattern, guard, body)
   end
   def compile(pattern, guard, body) do
     compile_fun(pattern, guard, body)
@@ -43,30 +52,40 @@ defmodule Etude.Match do
     compile_fun(pattern, true, body)
   end
   defp compile_fun(pattern, guard, body) do
-    pattern_fun = Matchable.compile(pattern)
-    guard_fun = Matchable.compile_body(guard)
-    body_fun = Matchable.compile_body(body)
+    pattern = Matchable.compile(pattern)
+    guard = Matchable.compile_body(guard)
+    body = Matchable.compile_body(body)
 
-    fn(value, bindings) ->
-      b = :erlang.make_ref()
+    %Executable{
+      module: __MODULE__,
+      env: {pattern, guard, body}
+    }
+  end
 
-      pattern = pattern_fun.(value, b)
-      guard = guard_fun.(b)
-      body = body_fun.(b)
+  def __execute__({pattern_e, guard_e, body_e}, value, bindings) do
+    b = :erlang.make_ref()
 
-      fn(state, rej, res) ->
-        state = Etude.State.put_private(state, b, bindings)
+    pattern = Executable.execute(pattern_e, value, b)
+    guard = Executable.execute(guard_e, b)
+    body = Executable.execute(body_e, b)
 
-        Etude.Forkable.fork(pattern, state, rej, fn(state, _) ->
-          Etude.Forkable.fork(guard, state, rej, fn
-            (state, true) ->
-              Etude.Forkable.fork(body, state, rej, res)
-            (state, value) ->
-              rej.(state, %CaseClauseError{term: value})
-          end)
+    fn(state, rej, res) ->
+      state = Etude.State.put_private(state, b, bindings)
+
+      Etude.Forkable.fork(pattern, state, rej, fn(state, _) ->
+        Etude.Forkable.fork(guard, state, rej, fn
+          (state, true) ->
+            Etude.Forkable.fork(body, state, rej, res)
+          (state, value) ->
+            rej.(state, %CaseClauseError{term: value})
         end)
-      end
-      |> Etude.Future.new()
+      end)
     end
+    |> Etude.Future.new()
+    # TODO wrap MatchErrors
+    #|> Etude.Future.chain_rej(fn(error) ->
+    #  IO.inspect {FAIL, bindings, guard_e}
+    #  Etude.Future.reject(error)
+    #end)
   end
 end

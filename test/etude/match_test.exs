@@ -171,7 +171,7 @@ defmodule Test.Etude.Match do
           unquote(Macro.escape(test[:body]))
         )
 
-        value = unquote(Macro.escape(assertion.value))
+        value = Etude.Future.of(unquote(Macro.escape(assertion.value)))
         bindings = unquote(Macro.escape(bindings))
 
         body_check = unquote(
@@ -191,9 +191,8 @@ defmodule Test.Etude.Match do
           end
         )
 
-        value
-        |> Etude.Future.of()
-        |> m.(bindings)
+        m
+        |> Etude.Match.Executable.execute(value, bindings)
         |> f()
         |> body_check.()
       end
@@ -207,11 +206,13 @@ defmodule Test.Etude.Match do
 
     m = Match.compile(p, nil, Match.binding(:name))
 
-    m.("Hello, Joe", %{})
+    m
+    |> Etude.Match.Executable.execute("Hello, Joe", %{})
     |> f()
     |> assert_term_match({:ok, "Joe"})
 
-    m.("Hello Robert", %{})
+    m
+    |> Etude.Match.Executable.execute("Hello Robert", %{})
     |> f()
     |> assert_term_match({:error, _})
   end
@@ -225,7 +226,8 @@ defmodule Test.Etude.Match do
 
     m = Match.compile(Match.binding(:name), nil, b)
 
-    m.("Mike", %{})
+    m
+    |> Etude.Match.Executable.execute("Mike", %{})
     |> f()
     |> assert_term_match({:ok, "Hello, Mike"})
   end
