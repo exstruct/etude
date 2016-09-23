@@ -5,8 +5,11 @@ defmodule Etude.Future do
   defmodule Error do
     defexception [kind: :error, payload: nil, stacktrace: []]
 
-    def message(%{payload: error}) do
+    def message(%{payload: %{__exception__: true} = error}) do
       Exception.message(error)
+    end
+    def message(%{payload: error}) do
+      inspect(error)
     end
   end
 
@@ -145,7 +148,19 @@ defmodule Etude.Future do
 
   defp format_stack(%{stack: stack}, [top | _]) do
     [top | stack]
+    |> Stream.dedup()
     |> Enum.take(15)
+  end
+
+  def error(%{__exception__: true} = exception) do
+    wrap(fn() ->
+      raise exception
+    end)
+  end
+  def error(error) do
+    wrap(fn() ->
+      throw error
+    end)
   end
 
   # transform
@@ -490,20 +505,15 @@ defmodule Etude.Future do
     end
   end
 
-  #def match(pattern, guard, body) do
-  #  Etude.Match.compile(pattern, guard, body)
-  #end
-
-  #def match(pattern, guard, body, value, bindings \\ %{}) do
-  #  match(pattern, guard, body).(value, bindings)
-  #end
-
   def match_cases(value, []) do
-    reject(%MatchError{term: value})
+    error(%CaseClauseError{term: value})
   end
   def match_cases(value, [{match, scope, body} | clauses]) do
-    bichain(match.(value, scope), fn
-      (%{__struct__: s}) when s in [MatchError, CaseClauseError] ->
+    b = mkref()
+    match
+    |> Etude.Match.Executable.execute(value, {b, scope})
+    |> bichain(fn
+      (%Error{payload: %Etude.Match.Error{binding: ^b}}) ->
         match_cases(value, clauses)
       (error) ->
         reject(error)

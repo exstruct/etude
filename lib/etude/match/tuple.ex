@@ -1,5 +1,5 @@
 defimpl Etude.Matchable, for: Tuple do
-  alias Etude.Match.Executable
+  alias Etude.Match.{Error,Executable}
 
   def compile({}) do
     Etude.Match.Literal.compile({})
@@ -21,7 +21,7 @@ defimpl Etude.Matchable, for: Tuple do
       (v) when is_tuple(v) and tuple_size(v) == size ->
         compare(patterns, v, b, 0, [])
       (v) ->
-        Etude.Future.reject(%MatchError{term: v})
+        Etude.Future.error(%Error{term: v, binding: b})
     end)
   end
 

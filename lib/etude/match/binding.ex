@@ -4,7 +4,8 @@ end
 
 defimpl Etude.Matchable, for: Etude.Match.Binding do
   alias Etude.Match.{Executable,Utils}
-  require Etude.Future
+  alias Etude.Future, as: F
+  require F
 
   def compile(%{name: :_}) do
     %Executable{
@@ -29,9 +30,9 @@ defimpl Etude.Matchable, for: Etude.Match.Binding do
         {:ok, ^v} ->
           res.(state, v)
         {:ok, binding} ->
-          Etude.Unifiable.unify(binding, v)
-          |> Etude.Future.chain(fn(v) ->
-            Etude.Future.new(fn(state, _rej, res) ->
+          Etude.Unifiable.unify(binding, v, b)
+          |> F.chain(fn(v) ->
+            F.new(fn(state, _rej, res) ->
               state
               |> Utils.put_binding(b, name, v)
               |> res.(v)
@@ -40,11 +41,11 @@ defimpl Etude.Matchable, for: Etude.Match.Binding do
           |> Etude.Forkable.fork(state, rej, res)
       end
     end
-    |> Etude.Future.new()
+    |> F.new()
   end
 
   def __execute_of__(_, value, _) do
-    Etude.Future.of(value)
+    F.of(value)
   end
 
   def compile_body(binding) do
@@ -59,12 +60,12 @@ defimpl Etude.Matchable, for: Etude.Match.Binding do
     fn(state, rej, res) ->
       case Utils.fetch_binding(state, b, name) do
         :error ->
-          IO.inspect state.stack
-          rej.(state, binding)
+          F.error(binding)
+          |> Etude.Forkable.fork(state, rej, res)
         {:ok, value} ->
           res.(state, value)
       end
     end
-    |> Etude.Future.new()
+    |> F.new()
   end
 end

@@ -62,9 +62,10 @@ defmodule Etude.Match do
     }
   end
 
-  def __execute__({pattern_e, guard_e, body_e}, value, bindings) do
-    b = :erlang.make_ref()
-
+  def __execute__(env, value, bindings) when is_map(bindings) do
+    __execute__(env, value, {:erlang.unique_integer(), bindings})
+  end
+  def __execute__({pattern_e, guard_e, body_e}, value, {b, bindings}) when is_map(bindings) do
     pattern = Executable.execute(pattern_e, value, b)
     guard = Executable.execute(guard_e, b)
     body = Executable.execute(body_e, b)
@@ -77,15 +78,12 @@ defmodule Etude.Match do
           (state, true) ->
             Etude.Forkable.fork(body, state, rej, res)
           (state, value) ->
-            rej.(state, %CaseClauseError{term: value})
+            %__MODULE__.Error{term: value, binding: b}
+            |> Etude.Future.error()
+            |> Etude.Forkable.fork(state, rej, res)
         end)
       end)
     end
     |> Etude.Future.new()
-    # TODO wrap MatchErrors
-    #|> Etude.Future.chain_rej(fn(error) ->
-    #  IO.inspect {FAIL, bindings, guard_e}
-    #  Etude.Future.reject(error)
-    #end)
   end
 end

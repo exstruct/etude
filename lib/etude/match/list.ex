@@ -1,5 +1,5 @@
 defimpl Etude.Matchable, for: List do
-  alias Etude.Match.{Executable,Literal}
+  alias Etude.Match.{Error,Executable,Literal}
 
   def compile([]) do
     Literal.compile([])
@@ -19,7 +19,7 @@ defimpl Etude.Matchable, for: List do
       (v) when is_list(v) ->
         compare(l_f, v, b, [])
       (v) ->
-        Etude.Future.reject(%MatchError{term: v})
+        Etude.Future.error(%Error{term: v, binding: b})
     end)
   end
 
@@ -36,8 +36,8 @@ defimpl Etude.Matchable, for: List do
     f = Executable.execute(a, b, bindings)
     compare([], [], bindings, [f | acc])
   end
-  defp compare(_, b, _, _acc) do
-    Etude.Future.reject(%MatchError{term: b})
+  defp compare(_, b, binding, _acc) do
+    Etude.Future.error(%Error{term: b, binding: binding})
   end
 
   def compile_body([]) do

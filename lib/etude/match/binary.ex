@@ -3,6 +3,8 @@ defmodule Etude.Match.Binary do
 end
 
 defimpl Etude.Matchable, for: Etude.Match.Binary do
+  alias Etude.Future, as: F
+  alias Etude.Match.Error
   alias Etude.Match.Executable
 
   def compile(%{fun: fun}) do
@@ -14,14 +16,14 @@ defimpl Etude.Matchable, for: Etude.Match.Binary do
 
   def __execute__(fun, value, b) do
     value
-    |> Etude.Future.to_term()
-    |> Etude.Future.chain(fn
+    |> F.to_term()
+    |> F.chain(fn
       (bin) when is_binary(bin) ->
         fun
-        |> Etude.Future.encase([bin])
-        |> Etude.Future.chain(fn
+        |> F.encase([bin])
+        |> F.chain(fn
           (bindings) when map_size(bindings) == 0 ->
-            Etude.Future.of(bin)
+            F.of(bin)
           (bindings) ->
             bindings
             |> Enum.map(fn({k, v}) ->
@@ -29,14 +31,14 @@ defimpl Etude.Matchable, for: Etude.Match.Binary do
               |> @protocol.compile()
               |> Executable.execute(v, b)
             end)
-            |> Etude.Future.parallel()
-            |> Etude.Future.map(fn(_) -> bin end)
+            |> F.parallel()
+            |> F.map(fn(_) -> bin end)
         end)
-        |> Etude.Future.chain_rej(fn(_) ->
-          Etude.Future.reject(%MatchError{term: bin})
+        |> F.chain_rej(fn(_) ->
+          F.error(%Error{term: bin, binding: b})
         end)
       (other) ->
-        Etude.Future.reject(%MatchError{term: other})
+        F.error(%Error{term: other, binding: b})
     end)
   end
 

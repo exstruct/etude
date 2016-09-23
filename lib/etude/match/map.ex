@@ -1,5 +1,5 @@
 defimpl Etude.Matchable, for: [Map, Any] do
-  alias Etude.Match.{Executable,Literal}
+  alias Etude.Match.{Error,Executable,Literal}
 
   def compile(map) when map_size(map) == 0 do
     Literal.compile(map)
@@ -33,7 +33,7 @@ defimpl Etude.Matchable, for: [Map, Any] do
         |> Etude.Future.parallel()
         |> Etude.Future.map(&:maps.from_list/1)
       (v) ->
-        Etude.Future.reject(%MatchError{term: v})
+        Etude.Future.error(%Error{term: v, binding: b})
     end)
   end
 
@@ -48,7 +48,7 @@ defimpl Etude.Matchable, for: [Map, Any] do
           |> Executable.execute(v, b)
           |> Etude.Future.map(&({k, &1}))
         :error ->
-          Etude.Future.reject(%MatchError{term: m})
+          Etude.Future.error(%Error{term: m, binding: b})
       end
     end)
   end

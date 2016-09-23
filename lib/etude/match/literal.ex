@@ -19,8 +19,8 @@ defmodule Etude.Match.Literal do
     }
   end
 
-  def __execute__(l, v, _) do
-    Etude.Unifiable.unify(l, v)
+  def __execute__(l, v, b) do
+    Etude.Unifiable.unify(l, v, b)
   end
 
   def compile_body(l) do

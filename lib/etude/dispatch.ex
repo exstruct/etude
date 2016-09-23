@@ -8,6 +8,8 @@ defmodule Etude.Dispatch do
         lookup(module, function, arity)
       end
       defoverridable resolve: 3
+
+      rewrite :lists, Etude.STDLIB.Lists
     end
   end
 
