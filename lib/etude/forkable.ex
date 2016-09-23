@@ -45,6 +45,11 @@ end
 
 defimpl Etude.Forkable, for: Any do
   def fork(value, state, _rej, res) do
-    res.(state, value)
+    case res.(state, value) do
+      {state, cancel} ->
+        {state, cancel}
+      %Etude.State{} = state ->
+        {state, fn(s) -> s end}
+    end
   end
 end

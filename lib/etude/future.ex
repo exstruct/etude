@@ -1,5 +1,5 @@
 defmodule Etude.Future do
-  defstruct [fun: nil, guarded: true, location: nil]
+  defstruct [fun: nil, guarded: false, location: nil]
   alias Etude.{Forkable,State}
 
   defmodule Error do
@@ -15,6 +15,12 @@ defmodule Etude.Future do
 
   # creation
 
+  defmacrop f(future, state, rej, res) do
+    quote do
+      Etude.Forkable.fork(unquote(future), unquote(state), unquote(rej), unquote(res))
+    end
+  end
+
   defmacro put_location(future) do
     loc = extract_location(__CALLER__)
     quote do
@@ -23,7 +29,7 @@ defmodule Etude.Future do
     end
   end
 
-  defmacro new(fun, guarded \\ true) do
+  defmacro new(fun, guarded \\ false) do
     loc = extract_location(__CALLER__)
     quote do
       %unquote(__MODULE__){fun: unquote(fun), guarded: unquote(guarded)}
@@ -42,8 +48,14 @@ defmodule Etude.Future do
     end
   end
 
-  def forkable?(value) do
+  def forkable?(%{__struct__: __MODULE__}) do
+    true
+  end
+  def forkable?(%{__struct__: _} = value) do
     Etude.Forkable.impl_for(value) != Etude.Forkable.Any
+  end
+  def forkable?(_) do
+    false
   end
 
   def of(value) do
@@ -74,7 +86,7 @@ defmodule Etude.Future do
         end
       }
     end
-    |> new()
+    |> new(true)
   end
 
   def timeout(future, time) do
@@ -177,7 +189,7 @@ defmodule Etude.Future do
       end
       f(future, state, pop.(rej), pop.(res))
     end
-    %__MODULE__{fun: fun, location: location}
+    %__MODULE__{fun: fun, guarded: true, location: location}
   end
 
   def map(future, f) do
@@ -393,16 +405,22 @@ defmodule Etude.Future do
   def parallel([], _count) do
     of([])
   end
+  def parallel([future], _) do
+    future
+    |> map(fn(v) ->
+      [v]
+    end)
+  end
   def parallel(futures, count) when is_list(futures) and count >= 1 do
     init = {%{}, :pending, futures, 0, 0, %{}}
     fn(state, rej, res) ->
-      ref = mkref
+      ref = mkref()
       {
         state |> State.put_private(ref, init) |> parallel_next(count, ref, rej, res),
         parallel_cancel(ref)
       }
     end
-    |> new()
+    |> new(true)
   end
 
   defp parallel_next(%{private: private} = state, count, ref, rej, res) do
@@ -529,15 +547,6 @@ defmodule Etude.Future do
           to_term(value)
       end
     end)
-  end
-
-  defp f(future, state, rej, res) do
-    case Forkable.fork(future, state, rej, res) do
-      {state = %State{}, cancel} when is_function(cancel, 1) ->
-        {state, cancel}
-      state = %State{} ->
-        {state, &noop/1}
-    end
   end
 
   defp noop(s) do
