@@ -31,8 +31,8 @@ defmodule Etude.Mixfile do
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
      {:mix_test_watch, "~> 0.2", only: :dev},
-     {:fugue, "~> 0.1", only: [:test]},
-     {:excoveralls, "~> 0.5.1", only: :test},]
+     {:fugue, "~> 0.1", only: [:test, :bench]},
+     {:excoveralls, "~> 0.5.1", only: :test}]
   end
 
   defp package do
