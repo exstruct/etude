@@ -44,7 +44,7 @@ defmodule Etude.State do
   end
 
   def update_private(%{private: private} = state, key, fun) do
-    value = Map.get(private, key)
+    {:ok, value} = Map.fetch(private, key)
     %{state | private: Map.put(private, key, fun.(value))}
   end
 

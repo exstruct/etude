@@ -48,6 +48,7 @@ defmodule Etude.Future do
     end
   end
 
+  @compile {:inline, forkable?: 1}
   def forkable?(%{__struct__: __MODULE__}) do
     true
   end
@@ -158,6 +159,11 @@ defmodule Etude.Future do
     |> new()
   end
 
+  defp format_stack(%{stack: stack}, []) do
+    stack
+    |> Stream.dedup()
+    |> Enum.take(15)
+  end
   defp format_stack(%{stack: stack}, [top | _]) do
     [top | stack]
     |> Stream.dedup()
@@ -234,6 +240,7 @@ defmodule Etude.Future do
     |> new()
   end
 
+  @compile {:inline, chain_cont: 3}
   defp chain_cont(fun, rej, res) do
     fn(state, value) ->
       value
@@ -354,8 +361,8 @@ defmodule Etude.Future do
       state = State.put_private(state, ref, {&noop/1, &noop/1, false})
 
       {%{private: private} = state, c1} = f(a, state, race_once(rej, ref), race_once(res, ref))
-      case Map.get(private, ref) do
-        {_, _, true} ->
+      case Map.fetch(private, ref) do
+        {:ok, {_, _, true}} ->
           state
         _ ->
           {state, c2} = f(b, state, race_once(rej, ref), race_once(res, ref))
@@ -380,11 +387,11 @@ defmodule Etude.Future do
 
   defp race_once(fun, ref) do
     fn(%{private: private} = state, value) ->
-      case Map.get(private, ref) do
-        {_, _, true} ->
+      case Map.fetch(private, ref) do
+        {:ok, {_, _, true}} ->
           state
           |> State.delete_private(ref)
-        {c1, c2, false} ->
+        {:ok, {c1, c2, false}} ->
           state
           |> c1.()
           |> c2.()
@@ -424,20 +431,20 @@ defmodule Etude.Future do
   end
 
   defp parallel_next(%{private: private} = state, count, ref, rej, res) do
-    case Map.get(private, ref) do
-      {_, :ok, _, _, _, _} ->
+    case Map.fetch(private, ref) do
+      {:ok, {_, :ok, _, _, _, _}} ->
         state
-      {_, :pending, _, _, pending, _} when pending >= count ->
+      {:ok, {_, :pending, _, _, pending, _}} when pending >= count ->
         state
-      {out, :pending, [], ids, _, _} when map_size(out) == ids ->
+      {:ok, {out, :pending, [], ids, _, _}} when map_size(out) == ids ->
         state
         |> State.update_private(ref, fn(p) ->
           put_elem(p, 1, :ok)
         end)
         |> res.(:maps.values(out))
-      {_, :pending, [], _, _, _} ->
+      {:ok, {_, :pending, [], _, _, _}} ->
         state
-      {out, :pending, [future | futures], id, pending, cancels} ->
+      {:ok, {out, :pending, [future | futures], id, pending, cancels}} ->
         state = State.update_private(state, ref, fn(_) ->
           {out, :pending, futures, id + 1, pending + 1, cancels}
         end)
@@ -464,8 +471,8 @@ defmodule Etude.Future do
 
   defp parallel_cancel(ref) do
     fn(%{private: private} = state) ->
-      case Map.get(private, ref) do
-        {_, :pending, _, _, _, cancels} ->
+      case Map.fetch(private, ref) do
+        {:ok, {_, :pending, _, _, _, cancels}} ->
           cancels
           |> Enum.reduce(state, fn({_, cancel}, state) ->
             cancel.(state)
@@ -553,6 +560,7 @@ defmodule Etude.Future do
     s
   end
 
+  @compile {:inline, mkref: 0}
   defp mkref() do
     :erlang.unique_integer()
   end
