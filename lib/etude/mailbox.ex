@@ -1,17 +1,35 @@
-defprotocol Etude.Mailbox do
-  def send(mailbox, message)
+defmodule Etude.Mailbox do
+  alias Etude.State
 
-  Kernel.def stream!(mailbox, timeout \\ 10_000)
-  def stream!(mailbox, timeout)
-end
+  defmodule Timeout do
+    defexception [:timeout, :pid]
 
-defmodule Etude.Mailbox.TimeoutException do
-  defexception [:mailbox, :timeout]
-
-  def message(%{mailbox: nil, timeout: timeout}) do
-    "Mailbox did not receive message within #{timeout}ms"
+    def message(%{pid: pid, timeout: timeout}) do
+      "Mailbox #{inspect(pid)} did not receive a message after #{inspect(timeout)}ms"
+    end
   end
-  def message(%{mailbox: mailbox, timeout: timeout}) do
-    "Mailbox #{inspect(mailbox)} did not receive message within #{timeout}ms"
+
+  def receive_into(state, timeout \\ 10_000) do
+    receive do
+      message ->
+        state
+        |> State.handle_info(message)
+        |> receive_immediate()
+    after
+      timeout ->
+        raise Timeout, timeout: timeout, pid: self()
+    end
+  end
+
+  defp receive_immediate(state) do
+    receive do
+      message ->
+        state
+        |> State.handle_info(message)
+        |> receive_immediate()
+    after
+      0 ->
+        state
+    end
   end
 end

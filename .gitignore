@@ -2,8 +2,9 @@
 /deps
 erl_crash.dump
 *.ez
-cover
-config/config.exs
-mix.lock
-bench/graphs
-bench/snapshots
+/cover
+/config/config.exs
+/mix.lock
+/bench/graphs
+/bench/snapshots
+/doc

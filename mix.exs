@@ -32,7 +32,8 @@ defmodule Etude.Mixfile do
      {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
      {:mix_test_watch, "~> 0.2", only: :dev},
      {:fugue, "~> 0.1", only: [:test, :bench]},
-     {:excoveralls, "~> 0.5.1", only: :test}]
+     {:excoveralls, "~> 0.5.1", only: :test},
+     {:ex_doc, ">= 0.0.0", only: :dev}]
   end
 
   defp package do
