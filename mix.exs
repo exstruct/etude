@@ -5,7 +5,7 @@ defmodule Etude.Mixfile do
     [app: :etude,
      version: "1.0.0-beta.2",
      elixir: "~> 1.0",
-     description: "parallel computation coordination utilities for erlang/elixir",
+     description: "futures for elixir/erlang",
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: [
        "coveralls": :test,

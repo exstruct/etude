@@ -1,4 +1,4 @@
-etude [![Build Status](https://travis-ci.org/camshaft/etude.png?branch=master)](https://travis-ci.org/camshaft/etude) [![Hex.pm](https://img.shields.io/hexpm/v/etude.svg)](https://hex.pm/packages/etude)
+etude [![Build Status](https://travis-ci.org/exstruct/etude.png?branch=master)](https://travis-ci.org/exstruct/etude) [![Hex.pm](https://img.shields.io/hexpm/v/etude.svg)](https://hex.pm/packages/etude)
 ====
 
-parallel computation coordination utilities for erlang/elixir
+futures for elixir/erlang
