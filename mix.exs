@@ -8,7 +8,6 @@ defmodule Etude.Mixfile do
      description: "parallel computation coordination utilities for erlang/elixir",
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: [
-       "bench": :bench,
        "coveralls": :test,
        "coveralls.circle": :test,
        "coveralls.detail": :test,
@@ -29,10 +28,10 @@ defmodule Etude.Mixfile do
      {:poison, "~> 2.2.0"},
      {:excheck, "~> 0.4.1", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
-     {:benchfella, "~> 0.3.1", only: [:dev, :test, :bench]},
+     {:eministat, github: "jlouis/eministat", only: [:dev, :test, :bench]},
      {:mix_test_watch, "~> 0.2", only: :dev},
      {:fugue, "~> 0.1", only: [:test, :bench]},
-     {:excoveralls, "~> 0.5.1", only: :test},
+     {:excoveralls, "~> 0.5.1", only: [:test, :bench]},
      {:ex_doc, ">= 0.0.0", only: :dev}]
   end
 
