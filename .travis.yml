@@ -3,9 +3,6 @@ language: elixir
 elixir:
   - 1.2.6
   - 1.3.3
-before_install:
- - cp config/config.exs.ci config/config.exs
 env:
-  - TEST_SUITE="mix test"
-  - TEST_SUITE="mix bench test/*_test.exs"
-script: mix compile && $TEST_SUITE
+  - MIX_ENV="test"
+  - MIX_ENV="bench"
