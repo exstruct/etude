@@ -27,7 +27,7 @@ defmodule Test.Etude.Case do
             IO.puts "\n"
             :eministat.x(95.0, a, b)
           rescue
-            FunctionClauseError ->
+            _ ->
               IO.puts "no difference"
           end
         end
