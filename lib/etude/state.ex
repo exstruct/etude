@@ -6,7 +6,9 @@ defmodule Etude.State do
              values: [],]
 
   @type t :: %__MODULE__{}
-  @opaque status :: :ok | :error
+  @type status :: :ok | :error
+
+  @done __MODULE__.DONE
 
   require Logger
 
@@ -129,12 +131,12 @@ defmodule Etude.State do
   @doc """
 
   """
-  def await(state) do
+  def loop(state) do
     state
     |> prepare()
     |> Etude.Mailbox.receive_into()
     |> trigger()
-    |> await()
+    |> loop()
   end
 
   @doc """
@@ -143,15 +145,15 @@ defmodule Etude.State do
   def await(state, target) do
     state
     |> link(target, &finish/3)
-    |> await()
+    |> loop()
   catch
-    :throw, {:done, result} ->
+    :throw, {@done, result} ->
       result
   end
 
   @spec finish(status, any, t) :: no_return
   defp finish(status, value, state) do
-    throw {:done, {status, value, state}}
+    throw {@done, {status, value, state}}
   end
 
   defp prepare(state) do
@@ -227,13 +229,17 @@ defmodule Etude.State do
     end
   end
   defp observe([observer | observers], ref, status, value, state) do
-    {fun, observer_ref, context, link_ref} = fetch_observer(state, observer, ref)
-    case fun.(observer_ref, context, link_ref, status, value, state) do
-      {status, value, state} when status in [:ok, :error] ->
-        state = cleanup(state, observer_ref)
-        observe(observers, observer_ref, status, value, state)
-      {:await, new_ref, state} ->
-        link(state, new_ref, observers)
+    case fetch_observer(state, observer, ref) do
+      {fun, observer_ref, context, link_ref} ->
+        case fun.(observer_ref, context, link_ref, status, value, state) do
+          {status, value, state} when status in [:ok, :error] ->
+            state = cleanup(state, observer_ref)
+            observe(observers, observer_ref, status, value, state)
+          {:await, new_ref, state} ->
+            link(state, new_ref, observers)
+        end
+      nil ->
+        observe(observers, ref, status, value, state)
     end
   end
 
@@ -244,5 +250,8 @@ defmodule Etude.State do
     {:ok, fun} = Map.fetch(observers, observer)
     {:ok, context} = Map.fetch(contexts, observer)
     {fun, observer, context, link_id}
+  rescue
+    MatchError ->
+      nil
   end
 end

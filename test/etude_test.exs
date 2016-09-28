@@ -6,7 +6,7 @@ defmodule Test.Etude do
   import Etude
 
   bench "value", 100 do
-    future = value(1)
+    future = ok(1)
     {
       fn ->
         1
@@ -18,7 +18,7 @@ defmodule Test.Etude do
   end
 
   bench "map", 100 do
-    future = value(1) |> map(&(&1 + 1)) |> map(&(&1 + 1)) |> map(&(&1 + 1))
+    future = ok(1) |> map(&(&1 + 1)) |> map(&(&1 + 1)) |> map(&(&1 + 1))
     {
       fn ->
         v = 1
@@ -38,7 +38,7 @@ defmodule Test.Etude do
 
     future = range
     |> Enum.map(fn(i) ->
-      value_after(i, 0)
+      ok(i) |> delay(0)
     end)
     |> join()
 
@@ -55,6 +55,36 @@ defmodule Test.Etude do
               i
           end
         end)
+      end,
+      fn ->
+        fork(future)
+      end
+    }
+  end
+
+  bench "join vs task", 50 do
+    range = 100..1
+
+    fun = fn(i) ->
+      fn() ->
+        :timer.sleep(div(i, 3))
+        i
+      end
+    end
+
+    future = range
+    |> Enum.map(fn(i) ->
+      Etude.async(fun.(i))
+    end)
+    |> Etude.join()
+
+    {
+      fn ->
+        range
+        |> Enum.map(fn(i) ->
+          Task.async(fun.(i))
+        end)
+        |> Enum.map(&Task.await/1)
       end,
       fn ->
         fork(future)

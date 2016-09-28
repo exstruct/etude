@@ -25,6 +25,7 @@ defmodule Test.Etude.Case do
           b = Test.Etude.Case.__bench__("subject", b, count)
           try do
             IO.puts "\n"
+            IO.puts unquote(name)
             :eministat.x(95.0, a, b)
           rescue
             _ ->

@@ -9,7 +9,10 @@ defmodule Etude.Join do
 
   def __join__([], acc, 0, _, _, state, observer, _stack) do
     state = maybe_cleanup(state, observer)
-    {:ok, :maps.values(acc), state}
+    acc = acc
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.map(&elem(&1, 1))
+    {:ok, acc, state}
   end
   def __join__(futures, acc, pending, index, concurrency, state, observer, stack) when futures == [] or pending >= concurrency do
     context = {futures, acc, pending, index, concurrency, stack}

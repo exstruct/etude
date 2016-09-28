@@ -8,7 +8,7 @@ defmodule Etude do
   import Etude.Macros
 
   @doc """
-  Start execution of a future with the default %Etude.State{}
+  Start execution of a future with the default `%Etude.State{}`
 
   See fork/2
   """
@@ -289,7 +289,7 @@ defmodule Etude do
   def select([], _count) do
     throw :empty_selection
   end
-  def select(futures, count) do
+  def select(futures, count) when length(futures) >= count do
     Etude.Select.select(futures, count)
   end
 
@@ -344,5 +344,22 @@ defmodule Etude do
     chain_error(future, fn(_) ->
       retry(future, limit - 1)
     end)
+  end
+
+  @doc """
+  Create a future that executes a `fun` in a `Task`.
+  """
+
+  def async(fun) do
+    async(:erlang, :apply, [fun, []])
+  end
+
+  @doc """
+  Create a future that calls `apply(mod, fun, args)` in a `Task`
+  """
+
+  deffuture async(mod, fun, args) do
+    task = Task.async(mod, fun, args)
+    f(task, state)
   end
 end
