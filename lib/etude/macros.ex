@@ -1,4 +1,6 @@
 defmodule Etude.Macros do
+  @moduledoc false
+
   defmacro deffuture({name, meta, args}, [do: body]) do
     arity = length(args)
     mod = name |> to_string() |> Macro.camelize() |> String.to_atom()
@@ -28,6 +30,7 @@ defmodule Etude.Macros do
       defmodule mod do
         @moduledoc false
         defstruct struct
+        @type t :: %__MODULE__{}
 
         defimpl Etude.Forkable do
           def fork(%{unquote_splicing(fields)}, var!(state), var!(stack)) do
@@ -35,6 +38,14 @@ defmodule Etude.Macros do
             var!(stack) = [var!(loc) | var!(stack)]
             _ = var!(stack)
             unquote(body)
+          end
+        end
+
+        defimpl Etude.Traversable do
+          def traverse(future, map) do
+            Etude.chain(future, fn(value) ->
+              @protocol.traverse(value, map)
+            end)
           end
         end
       end

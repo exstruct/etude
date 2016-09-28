@@ -1,6 +1,10 @@
 defmodule Etude do
+  @moduledoc """
+  Etude is a futures library for Elixir/Erlang.
+  """
+
   @vsn Mix.Project.config[:version]
-  alias Etude.State
+  alias Etude.{Forkable,State}
   import Etude.Macros
 
   @doc """
@@ -8,8 +12,9 @@ defmodule Etude do
 
   See fork/2
   """
+
   def fork(future) do
-    case fork(future, %Etude.State{}) do
+    case fork(future, %State{}) do
       {:ok, value, state} ->
         State.cleanup(state)
         {:ok, value}
@@ -24,6 +29,7 @@ defmodule Etude do
 
   See fork/2
   """
+
   def fork!(future) do
     case fork(future) do
       {:ok, value} ->
@@ -38,8 +44,9 @@ defmodule Etude do
   @doc """
   Start execution of a future
   """
+
   def fork(future, state) do
-    case Etude.Forkable.fork(future, state, []) do
+    case Forkable.fork(future, state, []) do
       {:ok, value, state} ->
         {:ok, value, state}
       {:error, error, state} ->
@@ -50,31 +57,18 @@ defmodule Etude do
   end
 
   @doc """
-  Wrap a value in a future.
+  Wrap a success value in a future.
 
-      iex> 1 |> value() |> fork!()
+      iex> 1 |> ok() |> fork!()
       1
 
-      iex> %{hello: "Joe"} |> value() |> fork!()
+      iex> %{hello: "Joe"} |> ok() |> fork!()
       %{hello: "Joe"}
   """
-  deffuture value(value) do
+
+  @spec ok(any) :: Etude.Ok.t
+  deffuture ok(value) do
     {:ok, value, state}
-  end
-
-  @doc """
-  Send a value after a number of milliseconds.
-
-      iex> value_after("Hello!", 10) |> fork!()
-      "Hello!"
-
-      iex> value_after("Hello", 10) |> map(&(&1 <> ", Joe")) |> fork!()
-      "Hello, Joe"
-  """
-  deffuture value_after(value, time) do
-    Etude.Timer.call_after(fn(state) ->
-      {:ok, value, state}
-    end, time, state)
   end
 
   @doc """
@@ -86,28 +80,37 @@ defmodule Etude do
       iex> %{uh: :oh} |> error() |> fork()
       {:error, %{uh: :oh}}
   """
+
+  @spec error(any) :: Forkable.t
   deffuture error(error) do
     {:error, error, state}
   end
 
   @doc """
-  Send an error after a number of milliseconds.
+  Delay execution of a future for a period in milliseconds.
 
-      iex> error_after("Woops", 10) |> fork()
-      {:error, "Woops"}
+      iex> ok("Hello!") |> delay(10) |> fork!()
+      "Hello!"
 
-      iex> error_after("Woops", 10) |> map_error(&(&1 <> "!")) |> fork()
-      {:error, "Woops!"}
+      iex> error(:foo) |> delay(10) |> fork()
+      {:error, :foo}
+
+      iex> ok("Hello") |> delay(10) |> map(&(&1 <> ", Joe")) |> fork!()
+      "Hello, Joe"
   """
-  deffuture error_after(value, time) do
+
+  @spec delay(Forkable.t, time_ms :: pos_integer) :: Forkable.t
+  deffuture delay(future, time_ms) do
     Etude.Timer.call_after(fn(state) ->
-      {:error, value, state}
-    end, time, state)
+      f(future, state)
+    end, time_ms, state)
   end
 
   @doc """
-
+  Wrap a function; catching any exceptions and returning them as `error` futures.
   """
+
+  @spec wrap((() -> any)) :: Forkable.t
   deffuture wrap(fun) do
     try do
       {:ok, fun.(), state}
@@ -123,15 +126,17 @@ defmodule Etude do
   @doc """
   Apply a function over a successful future's value.
 
-      iex> value(1) |> map(&(&1 + &1)) |> fork!()
+      iex> ok(1) |> map(&(&1 + &1)) |> fork!()
       2
 
-      iex> value(%{hello: nil}) |> map(&%{&1 | hello: "Robert"}) |> fork!()
+      iex> ok(%{hello: nil}) |> map(&%{&1 | hello: "Robert"}) |> fork!()
       %{hello: "Robert"}
   """
-  deffuture map(future, on_success) do
+
+  @spec map(Forkable.t, on_ok :: (any -> any)) :: Forkable.t
+  deffuture map(future, on_ok) do
     f(future, state, fn(value, state) ->
-      {:ok, on_success.(value), state}
+      {:ok, on_ok.(value), state}
     end)
   end
 
@@ -144,6 +149,8 @@ defmodule Etude do
       iex> error(%{hello: nil}) |> map_error(&%{&1 | hello: "Mike"}) |> fork()
       {:error, %{hello: "Mike"}}
   """
+
+  @spec map_error(Forkable.t, on_error :: (any -> any)) :: Forkable.t
   deffuture map_error(future, on_error) do
     f(future, state, noop(), fn(error, state) ->
       {:error, on_error.(error), state}
@@ -151,8 +158,10 @@ defmodule Etude do
   end
 
   @doc """
-
+  Apply a function over a both the future's ok or error value.
   """
+
+  @spec map_fold(Forkable.t, on_value :: (any -> any)) :: Forkable.t
   deffuture map_fold(future, on_value) do
     f(future, state, fn(value, state) ->
       {:ok, on_value.(value), state}
@@ -164,36 +173,44 @@ defmodule Etude do
   @doc """
   Apply different functions over success and error values.
   """
-  deffuture map_over(future, on_success, on_error) do
+
+  @spec map_over(Forkable.t, on_ok :: (any -> any), on_error :: (any -> any)) :: Forkable.t
+  deffuture map_over(future, on_ok, on_error) do
     f(future, state, fn(value, state) ->
-      {:ok, on_success.(value), state}
+      {:ok, on_ok.(value), state}
     end, fn(error, state) ->
       {:error, on_error.(error), state}
     end)
   end
 
   @doc """
+  Call a function when `future` returns ok and return a new future value.
 
-      iex> value(1) |> chain(&error(&1)) |> fork()
+      iex> ok(1) |> chain(&error(&1)) |> fork()
       {:error, 1}
 
-      iex> value(2) |> chain(&value(&1 * 5)) |> fork!()
+      iex> ok(2) |> chain(&ok(&1 * 5)) |> fork!()
       10
   """
-  deffuture chain(future, on_success) do
+
+  @spec chain(Forkable.t, on_ok :: (any -> Forkable.t)) :: Forkable.t
+  deffuture chain(future, on_ok) do
     f(future, state, fn(value, state) ->
-      f(on_success.(value), state)
+      f(on_ok.(value), state)
     end)
   end
 
   @doc """
+  Call a function when `future` returns an error and return a new future value.
 
-      iex> error(1) |> chain_error(&value(&1)) |> fork!()
+      iex> error(1) |> chain_error(&ok(&1)) |> fork!()
       1
 
       iex> error(2) |> chain_error(&error(&1 * 5)) |> fork()
       {:error, 10}
   """
+
+  @spec chain_error(Forkable.t, on_error :: (any -> Forkable.t)) :: Forkable.t
   deffuture chain_error(future, on_error) do
     f(future, state, noop(), fn(error, state) ->
       f(on_error.(error), state)
@@ -201,8 +218,10 @@ defmodule Etude do
   end
 
   @doc """
-
+  Call a function when `future` returns either an ok or error and return a new future value.
   """
+
+  @spec chain_fold(Forkable.t, on_value :: (any -> Forkable.t)) :: Forkable.t
   deffuture chain_fold(future, on_value) do
     f(future, state, fn(value, state) ->
       f(on_value.(value), state)
@@ -212,8 +231,10 @@ defmodule Etude do
   end
 
   @doc """
-
+  Call one function when `future` returns an ok and another with error; where each one return a new future value.
   """
+
+  @spec chain_over(Forkable.t, on_success :: (any -> Forkable.t), on_error :: (any -> Forkable.t)) :: Forkable.t
   deffuture chain_over(future, on_success, on_error) do
     f(future, state, fn(value, state) ->
       f(on_success.(value), state)
@@ -227,34 +248,43 @@ defmodule Etude do
 
   If any of the resulting futures fails, the pending futures will be canceled or not executed.
 
-      iex> [value(1), value(2), value(3)] |> join() |> fork!()
+      iex> [ok(1), ok(2), ok(3)] |> join() |> fork!()
       [1, 2, 3]
 
-      iex> [value_after(4, 15), value_after(5, 10), value_after(6, 5)] |> join(1) |> fork!()
+      iex> [ok(4) |> delay(15),
+      ...>  ok(5) |> delay(10),
+      ...>  ok(6) |> delay(5)] |> join(1) |> fork!()
       [4, 5, 6]
 
-      iex> [value(7), value(8), error(9)] |> join() |> fork()
+      iex> [ok(7), ok(8), error(9)] |> join() |> fork()
       {:error, 9}
   """
+
+  @spec join([Forkable.t], concurrency :: pos_integer | :infinity) :: Forkable.t
   def join(futures, concurrency \\ :infinity)
   def join([], _) do
-    value([])
+    ok([])
   end
   def join([future], _) do
-    %Etude.Map{future: future, on_success: &[&1]}
+    %Etude.Map{future: future, on_ok: &[&1]}
   end
   def join(futures, concurrency) do
     Etude.Join.join(futures, concurrency)
   end
 
   @doc """
+  Select the first `n` futures that return ok.
 
-      iex> [value(1), value(2), value(3)] |> select(2) |> fork!()
+      iex> [ok(1), ok(2), ok(3)] |> select(2) |> fork!()
       [1, 2]
 
-      iex> [value_after(1, 5), value_after(2, 10), value_after(3, 6)] |> select(2) |> fork!()
+      iex> [ok(1) |> delay(5),
+      ...>  ok(2) |> delay(10),
+      ...>  ok(3) |> delay(6)] |> select(2) |> fork!()
       [1, 3]
   """
+
+  @spec select([Forkable.t], count :: pos_integer) :: Forkable.t
   def select(futures, count)
   def select([], _count) do
     throw :empty_selection
@@ -264,13 +294,18 @@ defmodule Etude do
   end
 
   @doc """
+  Select the first future that returns ok.
 
-      iex> [value(1), value(2), value(3)] |> select_first() |> fork!()
+      iex> [ok(1), ok(2), ok(3)] |> select_first() |> fork!()
       1
 
-      iex> [value_after(1, 10), value_after(2, 7), value_after(3, 5)] |> select_first() |> fork!()
+      iex> [ok(1) |> delay(10),
+      ...>  ok(2) |> delay(7),
+      ...>  ok(3) |> delay(5)] |> select_first() |> fork!()
       3
   """
+
+  @spec select_first([Forkable.t]) :: Forkable.t
   def select_first(futures)
   def select_first([future]) do
     future
@@ -282,6 +317,7 @@ defmodule Etude do
   end
 
   @doc """
+  Retry a future until an ok value or the `limit` is reached.
 
       iex> wrap(fn ->
       ...>   if :rand.uniform() > 0.5 do
@@ -292,7 +328,10 @@ defmodule Etude do
       ...> end) |> retry() |> fork!()
       :foo
   """
-  def retry(future, count \\ :infinity)
+
+  @spec retry(Forkable.t, limit :: pos_integer) :: Forkable.t
+  @spec retry(Forkable.t, limit :: :infinity) :: Forkable.t | no_return
+  def retry(future, limit \\ :infinity)
   def retry(future, 0) do
     future
   end
@@ -301,9 +340,9 @@ defmodule Etude do
       retry(future, :infinity)
     end)
   end
-  def retry(future, times) when is_integer(times) and times >= 1 do
+  def retry(future, limit) when is_integer(limit) and limit >= 1 do
     chain_error(future, fn(_) ->
-      retry(future, times - 1)
+      retry(future, limit - 1)
     end)
   end
 end

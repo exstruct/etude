@@ -1,4 +1,6 @@
 defmodule Etude.Timer do
+  @moduledoc false
+
   alias Etude.{Receiver,State}
 
   def call_after(fun, time, state) do
@@ -13,7 +15,7 @@ defmodule Etude.Timer do
           :pass
       end,
       cancel: fn(_, state) ->
-        :erlang.cancel_timer(timer)
+        _ = :erlang.cancel_timer(timer)
         state
       end
     }

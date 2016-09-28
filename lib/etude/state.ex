@@ -5,6 +5,9 @@ defmodule Etude.State do
              receivers: %{},
              values: [],]
 
+  @type t :: %__MODULE__{}
+  @opaque status :: :ok | :error
+
   require Logger
 
   @doc """
@@ -127,14 +130,11 @@ defmodule Etude.State do
 
   """
   def await(state) do
-    state = prepare(state)
-    state = Etude.Mailbox.receive_into(state)
-    case trigger(state) do
-      {status, value, state} ->
-        {status, value, state}
-      %__MODULE__{} = state ->
-        await(state)
-    end
+    state
+    |> prepare()
+    |> Etude.Mailbox.receive_into()
+    |> trigger()
+    |> await()
   end
 
   @doc """
@@ -142,13 +142,16 @@ defmodule Etude.State do
   """
   def await(state, target) do
     state
-    |> link(target, fn(status, value, state) ->
-      throw {:done, {status, value, state}}
-    end)
+    |> link(target, &finish/3)
     |> await()
   catch
     :throw, {:done, result} ->
       result
+  end
+
+  @spec finish(status, any, t) :: no_return
+  defp finish(status, value, state) do
+    throw {:done, {status, value, state}}
   end
 
   defp prepare(state) do
@@ -179,7 +182,7 @@ defmodule Etude.State do
         end
       end, {contexts, receivers, state}, receivers)
 
-    Logger.warn("Unhandled message #{inspect(message)} in #{inspect(self())}")
+    _ = Logger.warn("Unhandled message #{inspect(message)} in #{inspect(self())}")
 
     %{state | contexts: contexts, receivers: receivers}
   catch

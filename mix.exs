@@ -24,14 +24,13 @@ defmodule Etude.Mixfile do
   end
 
   defp deps do
-    [{:nile, "~> 0.1.3"},
-     {:poison, "~> 2.2.0"},
-     {:excheck, "~> 0.4.1", only: [:dev, :test, :bench]},
+    [{:excheck, "~> 0.4.1", only: [:dev, :test, :bench]},
      {:triq, github: "krestenkrab/triq", only: [:dev, :test, :bench]},
      {:eministat, github: "jlouis/eministat", only: [:dev, :test, :bench]},
      {:mix_test_watch, "~> 0.2", only: :dev},
      {:fugue, "~> 0.1", only: [:test, :bench]},
      {:excoveralls, "~> 0.5.1", only: [:test, :bench]},
+     {:dialyxir, "~> 0.3.5", only: [:dev]},
      {:ex_doc, ">= 0.0.0", only: :dev}]
   end
 

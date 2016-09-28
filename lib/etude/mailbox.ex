@@ -1,4 +1,5 @@
 defmodule Etude.Mailbox do
+  @moduledoc false
   alias Etude.State
 
   defmodule Timeout do

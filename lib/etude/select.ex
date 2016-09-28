@@ -1,4 +1,6 @@
 defmodule Etude.Select do
+  @moduledoc false
+
   import Etude.Macros
   alias Etude.{State}
 
