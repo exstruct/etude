@@ -3,16 +3,19 @@ defmodule Etude do
   Etude is a futures library for Elixir/Erlang.
   """
 
-  @vsn Mix.Project.config[:version]
   alias Etude.{Forkable,State}
   import Etude.Macros
+
+  @type map_fun :: (any -> any)
+  @type chain_fun :: (any -> Forkable.t)
 
   @doc """
   Start execution of a future with the default `%Etude.State{}`
 
-  See fork/2
+  See `fork/2`
   """
 
+  @spec fork(Forkable.t) :: {:ok, any} | {:error, any}
   def fork(future) do
     case fork(future, %State{}) do
       {:ok, value, state} ->
@@ -27,9 +30,10 @@ defmodule Etude do
   @doc """
   Start execution of a future while raising any errors
 
-  See fork/2
+  See `fork/2`
   """
 
+  @spec fork!(Forkable.t) :: any | no_return
   def fork!(future) do
     case fork(future) do
       {:ok, value} ->
@@ -45,6 +49,7 @@ defmodule Etude do
   Start execution of a future
   """
 
+  @spec fork(Forkable.t, State.t) :: {:ok, any, State.t} | {:error, any, State.t}
   def fork(future, state) do
     case Forkable.fork(future, state, []) do
       {:ok, value, state} ->
@@ -133,7 +138,7 @@ defmodule Etude do
       %{hello: "Robert"}
   """
 
-  @spec map(Forkable.t, on_ok :: (any -> any)) :: Forkable.t
+  @spec map(Forkable.t, on_ok :: map_fun) :: Forkable.t
   deffuture map(future, on_ok) do
     f(future, state, fn(value, state) ->
       {:ok, on_ok.(value), state}
@@ -150,7 +155,7 @@ defmodule Etude do
       {:error, %{hello: "Mike"}}
   """
 
-  @spec map_error(Forkable.t, on_error :: (any -> any)) :: Forkable.t
+  @spec map_error(Forkable.t, on_error :: map_fun) :: Forkable.t
   deffuture map_error(future, on_error) do
     f(future, state, noop(), fn(error, state) ->
       {:error, on_error.(error), state}
@@ -161,7 +166,7 @@ defmodule Etude do
   Apply a function over a both the future's ok or error value.
   """
 
-  @spec map_fold(Forkable.t, on_value :: (any -> any)) :: Forkable.t
+  @spec map_fold(Forkable.t, on_value :: map_fun) :: Forkable.t
   deffuture map_fold(future, on_value) do
     f(future, state, fn(value, state) ->
       {:ok, on_value.(value), state}
@@ -174,7 +179,7 @@ defmodule Etude do
   Apply different functions over success and error values.
   """
 
-  @spec map_over(Forkable.t, on_ok :: (any -> any), on_error :: (any -> any)) :: Forkable.t
+  @spec map_over(Forkable.t, on_ok :: map_fun, on_error :: map_fun) :: Forkable.t
   deffuture map_over(future, on_ok, on_error) do
     f(future, state, fn(value, state) ->
       {:ok, on_ok.(value), state}
@@ -193,7 +198,7 @@ defmodule Etude do
       10
   """
 
-  @spec chain(Forkable.t, on_ok :: (any -> Forkable.t)) :: Forkable.t
+  @spec chain(Forkable.t, on_ok :: chain_fun) :: Forkable.t
   deffuture chain(future, on_ok) do
     f(future, state, fn(value, state) ->
       f(on_ok.(value), state)
@@ -210,7 +215,7 @@ defmodule Etude do
       {:error, 10}
   """
 
-  @spec chain_error(Forkable.t, on_error :: (any -> Forkable.t)) :: Forkable.t
+  @spec chain_error(Forkable.t, on_error :: chain_fun) :: Forkable.t
   deffuture chain_error(future, on_error) do
     f(future, state, noop(), fn(error, state) ->
       f(on_error.(error), state)
@@ -221,7 +226,7 @@ defmodule Etude do
   Call a function when `future` returns either an ok or error and return a new future value.
   """
 
-  @spec chain_fold(Forkable.t, on_value :: (any -> Forkable.t)) :: Forkable.t
+  @spec chain_fold(Forkable.t, on_value :: chain_fun) :: Forkable.t
   deffuture chain_fold(future, on_value) do
     f(future, state, fn(value, state) ->
       f(on_value.(value), state)
@@ -234,7 +239,7 @@ defmodule Etude do
   Call one function when `future` returns an ok and another with error; where each one return a new future value.
   """
 
-  @spec chain_over(Forkable.t, on_success :: (any -> Forkable.t), on_error :: (any -> Forkable.t)) :: Forkable.t
+  @spec chain_over(Forkable.t, on_success :: chain_fun, on_error :: chain_fun) :: Forkable.t
   deffuture chain_over(future, on_success, on_error) do
     f(future, state, fn(value, state) ->
       f(on_success.(value), state)
@@ -350,6 +355,7 @@ defmodule Etude do
   Create a future that executes a `fun` in a `Task`.
   """
 
+  @spec async((() -> any)) :: Forkable.t
   def async(fun) do
     async(:erlang, :apply, [fun, []])
   end
@@ -358,6 +364,7 @@ defmodule Etude do
   Create a future that calls `apply(mod, fun, args)` in a `Task`
   """
 
+  @spec async(module, atom, [any]) :: Forkable.t
   deffuture async(mod, fun, args) do
     task = Task.async(mod, fun, args)
     f(task, state)
