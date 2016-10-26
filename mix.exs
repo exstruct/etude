@@ -3,7 +3,7 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "1.0.0-beta.3",
+     version: "1.0.0",
      elixir: "~> 1.0",
      description: "futures for elixir/erlang",
      test_coverage: [tool: ExCoveralls],
@@ -38,6 +38,6 @@ defmodule Etude.Mixfile do
     [files: ["lib", "mix.exs", "README*"],
      maintainers: ["Cameron Bytheway"],
      licenses: ["MIT"],
-     links: %{"GitHub" => "https://github.com/camshaft/etude"}]
+     links: %{"GitHub" => "https://github.com/exstruct/etude"}]
   end
 end
