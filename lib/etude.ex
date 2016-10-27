@@ -351,6 +351,31 @@ defmodule Etude do
     end)
   end
 
+  defmodule TimeoutError do
+    defexception [:future, :time]
+
+    def message(%{future: future, time: time}) do
+      "#{inspect(future)} timed out after #{time}ms"
+    end
+  end
+
+  @doc """
+  Wraps a future in a timeout
+
+      iex> ok("hello") |> delay(10) |> timeout_after(20) |> fork!()
+      "hello"
+
+      iex> ok("goodbye") |> delay(20) |> timeout_after(10) |> fork()
+      {:error, %Etude.TimeoutError{time: 10, future: %Etude.Delay{future: %Etude.Ok{value: "goodbye"}, time_ms: 20}}}
+  """
+
+  def timeout_after(future, time_ms) do
+    [
+      future,
+      error(%TimeoutError{future: future, time: time_ms}) |> delay(time_ms)
+    ] |> select_first()
+  end
+
   @doc """
   Create a future that executes a `fun` in a `Task`.
   """
