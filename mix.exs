@@ -3,7 +3,7 @@ defmodule Etude.Mixfile do
 
   def project do
     [app: :etude,
-     version: "1.0.0",
+     version: "1.0.1",
      elixir: "~> 1.0",
      description: "futures for elixir/erlang",
      test_coverage: [tool: ExCoveralls],
